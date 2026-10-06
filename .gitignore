@@ -4,3 +4,13 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .venv/
+.venv-maia/
+vendor/maia3/build/
+vendor/maia3/*.egg-info/
+node_modules/
+.pnpm-store/
+dist/
+release/
+.runtime/
+artifacts/
+*.log

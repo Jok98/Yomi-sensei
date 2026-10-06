@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import subprocess
 from pathlib import Path
 
 import chess
@@ -79,13 +81,30 @@ def is_book_move(board: chess.Board, move: chess.Move) -> bool:
     return move.uci() in OPENING_BOOK.get(_position_key(board), set())
 
 
-def parse_board(fen: str) -> chess.Board:
+def parse_board(
+    fen: str,
+    initial_fen: str | None = None,
+    moves_uci: list[str] | None = None,
+) -> chess.Board:
     try:
         board = chess.Board(fen)
     except ValueError as exc:
         raise ChessRuleError("La posizione FEN non è valida.") from exc
     if not board.is_valid():
         raise ChessRuleError("La posizione contiene una configurazione illegale.")
+    if initial_fen is not None or moves_uci:
+        replay = parse_board(initial_fen or chess.STARTING_FEN)
+        for uci in moves_uci or []:
+            try:
+                move = chess.Move.from_uci(uci)
+            except ValueError as exc:
+                raise ChessRuleError("Lo storico contiene una mossa UCI non valida.") from exc
+            if move not in replay.legal_moves:
+                raise ChessRuleError("Lo storico contiene una mossa illegale.")
+            replay.push(move)
+        if replay.fen() != board.fen():
+            raise ChessRuleError("Lo storico delle mosse non corrisponde alla posizione FEN.")
+        return replay
     return board
 
 
@@ -109,6 +128,10 @@ def _game_status(board: chess.Board) -> str:
         return "Patta per stallo"
     if board.is_insufficient_material():
         return "Patta per materiale insufficiente"
+    if board.is_fivefold_repetition():
+        return "Patta per quintupla ripetizione"
+    if board.is_seventyfive_moves():
+        return "Patta per la regola delle 75 mosse"
     if board.can_claim_fifty_moves():
         return "Patta reclamabile per la regola delle 50 mosse"
     if board.can_claim_threefold_repetition():
@@ -143,8 +166,10 @@ def apply_move(
     from_square: str,
     to_square: str,
     promotion: str | None,
+    initial_fen: str | None = None,
+    moves_uci: list[str] | None = None,
 ) -> PositionState:
-    board = parse_board(fen)
+    board = parse_board(fen, initial_fen, moves_uci)
     suffix = promotion or ""
     try:
         move = chess.Move.from_uci(f"{from_square}{to_square}{suffix}")
@@ -260,9 +285,12 @@ class StockfishService:
         if self._engine is None:
             if not self.available:
                 raise RuntimeError(
-                    "Stockfish non è disponibile. Avvia l'app tramite Docker o configura STOCKFISH_PATH."
+                    "Stockfish non è disponibile. Prepara il runtime locale o configura STOCKFISH_PATH."
                 )
-            self._engine = chess.engine.SimpleEngine.popen_uci(self.executable_path)
+            self._engine = chess.engine.SimpleEngine.popen_uci(
+                self.executable_path,
+                creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+            )
         return self._engine
 
     async def analyze(
@@ -270,8 +298,10 @@ class StockfishService:
         fen: str,
         depth: int | None = None,
         include_replies: bool = True,
+        initial_fen: str | None = None,
+        moves_uci: list[str] | None = None,
     ) -> AnalyzeResponse:
-        board = parse_board(fen)
+        board = parse_board(fen, initial_fen, moves_uci)
         requested_depth = depth or self.default_depth
         if board.is_game_over(claim_draw=True):
             return AnalyzeResponse(
@@ -292,7 +322,7 @@ class StockfishService:
             replies: list[ReplyAnalysis] = []
             if include_replies:
                 for candidate in candidates:
-                    reply_board = board.copy(stack=False)
+                    reply_board = board.copy()
                     reply_board.push_uci(candidate.uci)
                     reply_candidates: list[CandidateMove] = []
                     if not reply_board.is_game_over(claim_draw=True):
@@ -333,8 +363,10 @@ class StockfishService:
         fen: str,
         move_uci: str,
         depth: int | None = None,
+        initial_fen: str | None = None,
+        moves_uci: list[str] | None = None,
     ) -> MoveClassificationResponse:
-        board = parse_board(fen)
+        board = parse_board(fen, initial_fen, moves_uci)
         try:
             move = chess.Move.from_uci(move_uci)
         except ValueError as exc:
@@ -359,7 +391,7 @@ class StockfishService:
                 return _classification_response("best", played_san, best_move_san=best_move_san)
 
             best_expectation = _expected_score(best_info["score"], original_color, board.ply())
-            played_board = board.copy(stack=False)
+            played_board = board.copy()
             played_board.push(move)
             played_expectation = _terminal_expected_score(played_board, original_color)
             if played_expectation is None:
@@ -387,8 +419,31 @@ class StockfishService:
         result = engine.analyse(board, chess.engine.Limit(depth=depth))
         return result[0] if isinstance(result, list) else result
 
-    async def computer_move(self, fen: str, difficulty: str) -> PositionState:
-        board = parse_board(fen)
+    async def evaluate_moves(
+        self, board: chess.Board, moves: list[str], depth: int | None = None,
+    ) -> dict[str, CandidateMove]:
+        root_moves = [chess.Move.from_uci(uci) for uci in moves]
+        if not root_moves:
+            return {}
+        if any(move not in board.legal_moves for move in root_moves):
+            raise ChessRuleError("Una candidata umana non è legale.")
+        async with self._lock:
+            infos = await asyncio.to_thread(
+                self._evaluate_moves_sync, board, root_moves, depth or self.default_depth,
+            )
+        return {candidate.uci: candidate for candidate in _candidate_moves(board, infos)}
+
+    def _evaluate_moves_sync(self, board: chess.Board, moves: list[chess.Move], depth: int) -> list[dict]:
+        result = self._ensure_engine().analyse(
+            board, chess.engine.Limit(depth=depth), root_moves=moves, multipv=len(moves),
+        )
+        return result if isinstance(result, list) else [result]
+
+    async def computer_move(
+        self, fen: str, difficulty: str,
+        initial_fen: str | None = None, moves_uci: list[str] | None = None,
+    ) -> PositionState:
+        board = parse_board(fen, initial_fen, moves_uci)
         if board.is_game_over(claim_draw=True):
             raise ChessRuleError("La partita è già terminata.")
         async with self._lock:

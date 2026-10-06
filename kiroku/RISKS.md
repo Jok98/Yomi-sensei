@@ -2,69 +2,33 @@
 
 ## Rischi aperti
 
-### Rischio: Codex non ottimale per coaching scacchistico
+### Rischio: Integrazione Codex dipendente dal runtime locale
 
-Condizione:
-I modelli disponibili in Codex sono orientati anche al lavoro agentico, non specificamente
-al coaching scacchistico.
+Condizione: La chat avvia un processo del CLI installato e autenticato dall'utente.
+Impatto: Modelli disponibili, latenza e compatibilità possono cambiare con la versione del CLI.
+Mitigazione: Modello opzionale, catalogo dinamico e CODEX_EXECUTABLE; validare una chat reale separatamente dai test sintetici.
 
-Impatto:
-Le risposte possono costare di più o risultare meno chiare di un modello generalista.
+### Rischio: Piattaforme non verificate
 
-Mitigazione:
-Mantenere `CODEX_MODEL` opzionale e confrontare le risposte su posizioni reali.
+Condizione: Sviluppo e verifiche correnti avvengono su Windows x64.
+Impatto: Linux/macOS possono richiedere adattamenti a packaging, motore e gestione dei processi.
+Mitigazione: Non presentare gli script multipiattaforma come runtime già validato.
 
-### Rischio: Credenziali ChatGPT nel volume Docker
+### Rischio: Riproducibilità Python e CI
 
-Condizione:
-Il login Codex viene memorizzato in `codex-auth` per sopravvivere ai riavvii.
-
-Impatto:
-Chi esporta o legge il volume potrebbe recuperare token di accesso.
-
-Mitigazione:
-Non montare il volume altrove, non copiarlo nel repository e non pubblicarlo; usare
-`codex logout` prima di cedere la macchina o il volume.
-
-### Rischio: Processo CLI per ogni messaggio
-
-Condizione:
-La chat stateless avvia `codex exec --ephemeral` a ogni richiesta.
-
-Impatto:
-Avvio e risposta possono essere più lenti di un daemon persistente.
-
-Mitigazione:
-Misurare l'MVP; valutare `codex app-server` soltanto se latenza o streaming lo richiedono.
-
-### Rischio: Prima build Docker non verificata
-
-Condizione:
-Docker non era installato o nel `PATH` durante l'implementazione.
-
-Impatto:
-Versioni di pacchetti o percorso di Stockfish potrebbero richiedere un piccolo aggiustamento.
-
-Mitigazione:
-La base è fissata a Debian Bookworm e `/usr/games/stockfish` è verificato nel pacchetto
-ufficiale; eseguire comunque build e health check appena Docker Desktop è disponibile.
-
-### Rischio: Percezione fuorviante delle percentuali
-
-Condizione:
-L'utente può leggerle come probabilità assoluta che una mossa sia la migliore.
-
-Impatto:
-Il prodotto comunica una certezza che Stockfish MultiPV non fornisce.
-
-Mitigazione:
-Etichettare come esito atteso, mostrare W/D/L nel tooltip e mantenere la nota esplicativa.
+Condizione: Dipendenze Python con intervalli e nessuna pipeline CI.
+Impatto: Una preparazione futura può risolvere versioni differenti.
+Mitigazione: YS-05 conserva il follow-up; il frontend ha pnpm-lock.yaml e verifiche ripetibili.
 
 ## Rischi accettati
 
-- Stato partita volatile nel browser per mantenere l'MVP semplice e privo di database.
-- Dipendenza da internet soltanto per la chat Codex.
+- PyTorch e pesi aumentano il pacchetto Windows a circa 1,27 GB; inferenza CPU verificata, CUDA non validato.
+- Il rating Maia condiziona il modello Lichess blitz e non garantisce forza o comportamento individuale identici.
+- Stato partita e conversazione in memoria: chiusura e nuova partita li azzerano.
+- Connessione Internet necessaria soltanto per il coach dopo la preparazione dei runtime.
 
 ## Rischi chiusi
 
-- Nessuno.
+- Ripetizioni: storico UCI validato e Board con stack; regressioni e smoke desktop passano (YS-01).
+- Dipendenza da Docker: percorso rimosso su richiesta dell'utente.
+- Annullamento, analisi obsolete in chat e pannello risposte nascosto: corretti nel controller/componenti React con test regressione.

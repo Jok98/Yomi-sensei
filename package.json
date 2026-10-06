@@ -1,0 +1,80 @@
+{
+  "name": "yomi-sensei",
+  "version": "0.5.0",
+  "private": true,
+  "type": "module",
+  "description": "Scacchiera desktop con Stockfish e coach Codex.",
+  "main": "dist/main.cjs",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "node scripts/build.mjs",
+    "start": "electron .",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/frontend/*.test.ts",
+    "check": "pnpm typecheck && pnpm test && pnpm build",
+    "format:check": "prettier --check src scripts tests/frontend vite.config.ts",
+    "smoke:desktop": "node scripts/smoke-desktop.mjs",
+    "prepare:runtime": "node scripts/setup.mjs",
+    "build:backend": "node scripts/build-backend.mjs",
+    "build:maia": "node scripts/build-maia.mjs",
+    "package:dir": "pnpm build && pnpm build:backend && pnpm build:maia && electron-builder --dir"
+  },
+  "dependencies": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "electron": "44.5.1",
+    "electron-builder": "26.15.3",
+    "esbuild": "0.28.2",
+    "playwright": "1.63.0",
+    "prettier": "3.6.2",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vite": "8.3.2"
+  },
+  "build": {
+    "appId": "dev.yomi.sensei",
+    "productName": "Yomi Sensei",
+    "directories": {
+      "output": "release/maia"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": ".runtime/backend",
+        "to": "backend"
+      },
+      {
+        "from": ".runtime/stockfish",
+        "to": "stockfish"
+      },
+      {
+        "from": ".runtime/maia",
+        "to": "maia"
+      }
+    ],
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "signAndEditExecutable": false
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Game"
+    }
+  }
+}

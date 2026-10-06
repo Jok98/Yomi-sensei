@@ -2,44 +2,38 @@
 
 ## Vincoli attivi
 
-### Vincolo: Credenziali Codex fuori dall'app
+### Vincolo: Nessun Docker
 
 Stato: active
+Regola: Avviare l'app dal desktop locale; ComprehensionIDE è solo un riferimento.
+Perché: Richiesta esplicita dell'utente; il repository di riferimento contiene lavoro indipendente.
 
-Regola:
-Non inserire token Codex in JavaScript, immagini, repository o risposte HTTP. Non usare
-API key per questa integrazione.
-
-Perché:
-Il browser è ispezionabile; le credenziali appartengono al CLI e al suo volume privato.
-
-### Vincolo: Analisi deterministica separata dal linguaggio
+### Vincolo: Credenziali fuori dall'app
 
 Stato: active
+Regola: Usare il login locale Codex; non inserire token/API key in renderer, repository o pacchetti.
+Perché: L'autenticazione appartiene al CLI e deve restare separata dal frontend.
 
-Regola:
-Solo `python-chess` e Stockfish decidono legalità e valutazione.
-
-Perché:
-L'LLM può allucinare mosse o stime e non deve corrompere lo stato della partita.
-
-### Vincolo: Funzionamento degradato
+### Vincolo: Regole e valutazioni deterministiche
 
 Stato: active
+Regola: Legalità affidata a python-chess, qualità tattica a Stockfish e mosse umane a Maia; il coach non modifica la partita. Non applicare il convertitore W/D/L Stockfish ai punteggi Maia.
+Perché: Le spiegazioni del modello possono contenere errori e non sono regole scacchistiche.
 
-Regola:
-Scacchiera e motore devono restare utilizzabili senza Codex autenticato.
+### Vincolo: Funzionamento senza chat
 
-Perché:
-La funzionalità locale non deve dipendere da rete, credito o disponibilità del modello.
+Stato: active
+Regola: Scacchiera, Maia e Stockfish restano utilizzabili quando Codex non è autenticato o manca la rete, dopo la preparazione dei pesi locali.
+Perché: Il nucleo locale non deve dipendere dall'account o dalla latenza del coach.
+
+### Vincolo: Confine desktop/backend
+
+Stato: active
+Regola: Loopback, token effimero nel main Electron, IPC limitato, renderer senza Node e processi posseduti chiusi all'uscita.
+Perché: Il frontend non deve ottenere credenziali o l'accesso generale al computer.
 
 ## Fuori ambito
 
-- Account utenti, matchmaking, cloud sync e pagamenti.
-- Packaging nativo Tauri/Electron nella prima versione.
-- Motore di gioco remoto o database persistente.
-
-## Modifiche vietate
-
-- Non presentare le percentuali W/D/L come garanzia o probabilità calibrata di correttezza.
-- Non esporre il servizio su tutte le interfacce di rete per impostazione predefinita.
+- Account utenti, matchmaking, cloud sync, pagamenti e motore remoto.
+- Chiamate modello reali nei test automatici.
+- Presentare W/D/L come probabilità che la mossa sia corretta.

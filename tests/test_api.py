@@ -47,7 +47,7 @@ def test_computer_move_endpoint(monkeypatch) -> None:
     board = chess.Board()
     board.push_uci("e2e4")
 
-    async def fake_computer_move(fen: str, difficulty: str):
+    async def fake_computer_move(fen: str, difficulty: str, initial_fen=None, moves_uci=None):
         assert difficulty == "hard"
         return apply_move(fen, "e7", "e5", None)
 
@@ -55,7 +55,7 @@ def test_computer_move_endpoint(monkeypatch) -> None:
     with TestClient(app) as client:
         response = client.post(
             "/api/game/computer-move",
-            json={"fen": board.fen(), "difficulty": "hard"},
+            json={"fen": board.fen(), "difficulty": "hard", "engine": "stockfish"},
         )
 
     assert response.status_code == 200
@@ -64,7 +64,7 @@ def test_computer_move_endpoint(monkeypatch) -> None:
 
 
 def test_classify_move_endpoint(monkeypatch) -> None:
-    async def fake_classification(fen: str, move_uci: str, depth: int | None):
+    async def fake_classification(fen: str, move_uci: str, depth: int | None, initial_fen=None, moves_uci=None):
         assert fen == chess.Board().fen()
         assert move_uci == "e2e4"
         assert depth is None

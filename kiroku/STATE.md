@@ -1,39 +1,27 @@
 # Stato
 
-## Scopo del progetto
-
-Yomi Sensei permette di giocare su una scacchiera locale, vedere tre proposte
-Stockfish e discutere la posizione con un LLM che riceve automaticamente il contesto.
-
 ## Stato corrente
 
-- MVP implementato con FastAPI, `python-chess`, Stockfish, Codex CLI e frontend senza build.
-- Distribuzione prevista tramite una sola immagine Docker e PWA installabile.
-- Il modello non è fissato: Codex CLI usa quello disponibile per l'account, salvo `CODEX_MODEL`.
-- Lo storico è mantenuto nel browser e il backend resta stateless.
+- Yomi Sensei usa Electron, React e TypeScript con backend Python locale gestito.
+- La shell riprende ComprehensionIDE: barre laterali, scacchiera centrale, pannelli richiudibili.
+- Docker e il precedente frontend PWA sono rimossi per richiesta esplicita dell'utente.
+- Lo storico partita resta volatile; FEN iniziale e mosse UCI ricostruiscono il Board con stack.
+- Maia-3 è l'avversario predefinito: modelli locali 79M/5M, rating Bianco/Nero separati e mosse campionate dalla policy.
+- Stockfish 19 valuta qualità tattica e candidate Maia; Codex usa il profilo autenticato del CLI della macchina.
+- Build Windows in release/maia/win-unpacked con Python, worker PyTorch CPU, modelli e Stockfish incorporati.
 
-## Verificato di recente
+## Verifiche attuali
 
-- 2026-08-30: repository inizialmente vuoto e senza commit.
-- 2026-08-30: verificato `codex-cli 0.151.0-alpha.7.2`, autenticato tramite ChatGPT.
-- 2026-08-30: Sebas conferma il pattern `codex exec` effimero e read-only.
-- 2026-08-30: la documentazione OpenAI conferma login ChatGPT, device code e cache in `CODEX_HOME`.
-- 2026-08-30: 11 test Python, sintassi JavaScript/Python e checker Kiroku superati.
-- 2026-08-30: browser desktop/mobile verificato; mossa `e2-e4` e annullamento funzionano.
-- 2026-08-30: rimossa integralmente l'integrazione API key/Responses API.
-- 2026-08-30: chiamata reale attraverso `CodexCliService` riuscita con risposta `CODICEX_OK`.
-- 2026-08-30: `/api/health` locale rileva Codex disponibile e autenticato via ChatGPT.
+- 36 test Python, 14 TypeScript, typecheck, build, formattazione e pip check dei due runtime superati.
+- Smoke Electron sorgenti/pacchetto con Maia 5M/79M e Stockfish reali: mosse speciali,
+  trascinamento, ripetizioni, avversari, annullamento, rating, pannelli e layout compatto.
+- La chat nei test usa intenzionalmente un CLI non disponibile: nessuna chiamata account.
+- Benchmark worker CPU su 11 posizioni: mediana a caldo 34 ms per 5M, 193 ms per 79M; non è latenza totale dell'app.
+- Rapporto/screenshot in artifacts/desktop-smoke.json, desktop-maia.png, desktop-stockfish.png, desktop-compact.png e maia-benchmark.json.
 
-## Domande aperte
+## Lavoro aperto
 
-- Le percentuali W/D/L sono il formato finale desiderato o si preferisce un indice
-  normalizzato tra le sole tre mosse?
-- L'utente vuole una PWA installabile o anche un wrapper Tauri con installer nativo?
-- La chat dovrà conservare partite e conversazioni tra riavvii?
-
-## Punti da sorvegliare
-
-- Disponibilità e latenza del modello scelto dall'account ChatGPT reale.
-- Prima build effettiva dell'immagine, pur con pacchetto e percorso Stockfish verificati su Debian.
-- Primo login device-code e persistenza del volume `codex-auth` da verificare con Docker Desktop.
-- Coerenza tra storico SAN client-side e FEN dopo annullamenti o import futuri.
+- YS-01 corretto; chiamate legacy con sola FEN restano prive dello storico delle ripetizioni.
+- Persistenza, import/export PGN/FEN e revisione post-partita non implementati.
+- Chat reale, runtime CUDA e piattaforme diverse da Windows non validati.
+- CI ancora da predisporre; dipendenze Python con intervalli di versione.

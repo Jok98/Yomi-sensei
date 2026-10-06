@@ -2,54 +2,43 @@
 
 ## Decisioni attive
 
-### Decisione: PWA locale in un solo container
+### Decisione: Desktop Electron/React senza Docker
 
 Stato: active
 Area: distribuzione
-
-Decisione:
-Servire interfaccia e API da FastAPI; l'app è installabile come PWA.
-
-Motivazione:
-È il percorso più portabile e verificabile senza creare un pacchetto diverso per ogni OS.
-
+Decisione: Usare Electron, React, TypeScript e Vite, ispirandosi a ComprehensionIDE.
+Motivazione: Richiesta esplicita dell'utente del 2026-10-06; avvio diretto locale e shell compatta.
 Conseguenze:
-- Serve Docker Desktop o un runtime compatibile.
-- Un wrapper Tauri resta opzionale e separato.
+- Python e Stockfish restano servizi locali posseduti dal desktop.
+- La build Windows incorpora il runtime Python; il CLI Codex resta esterno e autenticato dall'utente.
+- Il riferimento ComprehensionIDE resta indipendente e in sola lettura.
+- Docker e PWA non sono più i percorsi di distribuzione.
 
-### Decisione: Stockfish separato dal coach LLM
+### Decisione: Maia-3 avversario principale, Stockfish valutatore
 
 Stato: active
 Area: analisi
+Decisione: Maia-3 campiona le mosse dell'avversario e stima scelte umane; python-chess determina legalità, Stockfish qualità tattica e Codex spiega il confronto.
+Motivazione: L'utente approva il 2026-10-06 un motore umano prioritario, affiancato a Stockfish.
+Conseguenze: Probabilità della mossa umana e W/D/L Maia sono separati dall'esito atteso Stockfish W + 0,5 × D. Storico, modello e rating identificano il contesto delle analisi.
 
-Decisione:
-Stockfish calcola mosse e valutazioni; l'LLM interpreta il risultato.
+### Decisione: Runtime Maia separato e locale
 
-Motivazione:
-Un LLM non è un motore scacchistico affidabile e può inventare mosse.
+Stato: active
+Area: inferenza
+Decisione: Worker JSON isolato con PyTorch CPU e modelli ufficiali fissati 5M/79M; 79M predefinito e 5M selezionabile.
+Motivazione: Il benchmark locale rende 79M utilizzabile anche su CPU, mantenendo il backend leggero e il pacchetto indipendente dalla GPU.
+Conseguenze: Nessun download durante le partite, pesi verificati con checksum e codice/licenza upstream conservati. Dettagli nel track maia-integration.
 
-Conseguenze:
-- La chat riceve le linee del motore come contesto vincolante.
-- Le regole sono sempre validate da `python-chess`.
-
-### Decisione: Codex CLI con login ChatGPT e invocazioni effimere
+### Decisione: Codex CLI con login ChatGPT
 
 Stato: active
 Area: LLM
+Decisione: Invocazioni `codex exec` effimere, sandbox read-only, modello opzionale e login locale.
+Motivazione: Conservare l'integrazione richiesta senza API key o un loop modello alternativo.
+Conseguenze: Credenziali fuori da renderer e pacchetti; latenza del processo per messaggio ancora da misurare nel desktop.
 
-Decisione:
-Usare `codex exec` autenticato tramite abbonamento ChatGPT, senza API key. Non fissare
-il modello predefinito e isolare ogni richiesta come processo effimero read-only.
+## Decisioni sostituite
 
-Motivazione:
-Rispecchia il pattern già adottato in Sebas e usa i crediti dell'abbonamento Codex.
-
-Conseguenze:
-- Il container include Codex CLI e richiede un login device-code una tantum.
-- Le credenziali risiedono nel volume privato `codex-auth`.
-- Ogni messaggio crea un processo CLI; latenza e concorrenza vanno misurate.
-
-## Decisioni sostituite o obsolete
-
-- 2026-08-30: integrazione diretta Responses API con `OPENAI_API_KEY` e modello
-  `gpt-5.3-codex`; sostituita perché il requisito è Codex CLI con abbonamento ChatGPT.
+- PWA in un container Docker: sostituita dal desktop il 2026-10-06.
+- Responses API con OPENAI_API_KEY: sostituita dal CLI autenticato nel primo MVP.

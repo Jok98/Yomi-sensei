@@ -1,150 +1,171 @@
 # Yomi Sensei
 
-Yomi Sensei è una scacchiera locale per giocare e studiare con:
+App desktop locale per giocare e studiare gli scacchi con **Maia-3**, Stockfish e un coach Codex.
+Il frontend usa **Electron, React e TypeScript**, con la shell compatta di ComprehensionIDE
+come riferimento: scacchiera centrale, navigazione a sinistra, analisi e coach a destra.
 
-- drag-and-drop e click-to-move;
-- regole validate da `python-chess`;
-- modalità **Libera** e **Contro computer**, con quattro difficoltà Stockfish;
-- tre mosse candidate per chi gioca e tre risposte dell'avversario per ogni scelta,
-  calcolate da Stockfish con linee e stima W/D/L;
-- giudizio immediato della mossa (da manuale, migliore, eccellente, buona,
-  imprecisione, errore o grave errore) con badge sulla casa di arrivo e registro
-  laterale;
-- chat contestuale tramite **Codex CLI autenticato con l'abbonamento ChatGPT**;
-- selezione nell'interfaccia del modello Codex e del relativo reasoning;
-- PWA installabile e runtime Docker portabile.
+## Avvio Windows
 
-Non usa `OPENAI_API_KEY` e non chiama direttamente la Responses API. Come in
-[Sebas](https://github.com/Jok98/Sebas), il backend esegue `codex exec` in modalità
-effimera, senza strumenti e con sandbox read-only.
+Apri **Start.cmd**. Avvia il pacchetto corrente in `release/maia/win-unpacked/Yomi Sensei.exe`.
+Questa cartella include Electron, backend Python, worker Maia, pesi 5M/79M e Stockfish: l'avvio
+non richiede Docker, Python, Node o pnpm installati. Conserva tutta la cartella,
+non soltanto il file `.exe`.
 
-## Avvio Docker con account ChatGPT
+La chat richiede separatamente **Codex CLI autenticato con ChatGPT** (`codex login`).
+Le credenziali restano nel profilo locale del CLI, fuori dall'app e dai pacchetti.
+I motori e la scacchiera funzionano anche senza Codex. Non usa `OPENAI_API_KEY`.
 
-Serve Docker Desktop o un runtime Docker compatibile.
+## Workspace
 
-1. Costruisci l'immagine, che include Stockfish e Codex CLI:
+- **Partita / Registro**, sulla barra sinistra: modalità, avversario, rating e mosse classificate.
+- **Scacchiera** centrale: click o trascinamento, arrocco, en passant e selezione della promozione.
+- **Analisi / Coach**, sulla barra destra: **Maia · umana**, **Stockfish · tattica** e chat.
+- Maia-3 è l'avversario predefinito in modalità Computer; puoi scegliere anche Stockfish.
+- Il profilo umano imposta separatamente rating Bianco e Nero, con riferimento Lichess blitz.
+- **Accurato · 79M** è il modello Maia predefinito; **Rapido · 5M** riduce il tempo di calcolo.
+- Seleziona una candidata per evidenziarla sulla scacchiera e leggerne le risposte.
+- I pannelli laterali si possono nascondere. Lo zoom nativo resta disponibile.
+- In modalità Computer giochi con il Bianco; Indietro torna al tuo turno anche dopo una risposta fallita.
+- **Nuova partita** svuota mosse e conversazione; le partite restano in memoria fino alla chiusura.
 
-   ```powershell
-   docker compose build
-   ```
+| Scorciatoia | Azione |
+| --- | --- |
+| Ctrl+N | Nuova partita |
+| Ctrl+Z | Annulla mossa |
+| Ctrl+B | Mostra/nasconde pannello partita |
+| Ctrl+Alt+B | Mostra/nasconde pannello destro |
+| Ctrl+F | Ruota scacchiera in modalità Libera |
+| Ctrl+Shift+R | Ricalcola analisi |
+| Ctrl+, | Servizi locali |
 
-2. Una sola volta, autentica il Codex CLI del container con il tuo account ChatGPT:
+Nel pannello **Maia** la percentuale è la probabilità stimata che un umano al rating
+selezionato giochi quella mossa. Le candidate non esauriscono tutte le mosse e le
+percentuali mostrate non devono sommare a 100. La riga Stockfish misura la qualità
+tattica della stessa candidata, anche quando è fuori dalle sue prime tre scelte.
+Il tooltip mostra separatamente il W/D/L previsto da Maia per la linea.
 
-   ```powershell
-   docker compose run --rm yomi-sensei codex login --device-auth
-   ```
+Nel pannello **Stockfish** le percentuali sono **vittoria + 0,5 × patta** per il lato
+al tratto. Nessuna di queste percentuali indica la probabilità che una mossa sia
+corretta. Il coach distingue le fonti. Maia campiona dalla propria distribuzione:
+gli errori umani non vengono sostituiti automaticamente da mosse Stockfish.
+Un messaggio inviato mentre la
+posizione cambia mantiene la propria FEN ed è etichettato come posizione precedente.
 
-   Apri il link mostrato, inserisci il codice temporaneo e completa il login. Le
-   credenziali restano nel volume Docker privato `codex-auth` e non nell'immagine o
-   nel repository.
+## Sviluppo
 
-3. Avvia l'app:
-
-   ```powershell
-   docker compose up
-   ```
-
-4. Apri [http://localhost:8787](http://localhost:8787). Lo stato in alto diventa
-   verde quando Stockfish è disponibile e Codex risulta autenticato via ChatGPT.
-
-Per controllare il login senza avviare l'app:
+Servono Node.js 22.12+, pnpm 11 e Python 3.12 consigliato per preparare i sorgenti.
 
 ```powershell
-docker compose run --rm yomi-sensei codex login status
+pnpm install --frozen-lockfile
+pnpm prepare:runtime
+pnpm build
+pnpm start
 ```
 
-Non copiare o pubblicare il contenuto del volume di autenticazione: contiene token
-equivalenti a una credenziale.
+`prepare:runtime` crea `.venv` se necessaria, installa le dipendenze Python e prepara
+Electron. Su Windows x64 scarica **Stockfish 19** dal [repository ufficiale](https://github.com/official-stockfish/Stockfish/releases/tag/sf_19),
+verifica SHA-256 e conserva binario, sorgenti e licenza in `.runtime/stockfish`.
+Gli altri sistemi richiedono un motore locale indicato da `STOCKFISH_PATH`.
 
-## Modello Codex
+La preparazione crea inoltre `.venv-maia` con PyTorch CPU e installa il codice
+Maia-3 fissato in `vendor/maia3`. I pesi ufficiali 5M e 79M vengono scaricati in
+`.runtime/maia/models`, con revisioni e SHA-256 verificati. Le partite non scaricano
+modelli e non richiedono rete. I pesi occupano circa 337 MB; il runtime PyTorch
+aggiunge spazio al pacchetto. Codice e pesi Maia-3 sono AGPLv3: upstream, sorgenti
+dell'adattatore e licenza sono conservati nel pacchetto.
+[Maia-3 ufficiale](https://github.com/CSSLab/maia3).
 
-Per impostazione predefinita non viene fissato uno slug: il CLI usa il modello
-disponibile per l'account e per la sua versione corrente. È possibile forzarlo in un
-file `.env`, ma soltanto se quel modello è accessibile dall'account:
+`pnpm dev` abilita Vite con aggiornamento React. Riavvia dopo modifiche al processo
+desktop o Python. `start.sh` avvia dai sorgenti su Linux; questa piattaforma richiede
+una verifica separata.
 
-```dotenv
-CODEX_MODEL=
-CODEX_TIMEOUT_SECONDS=120
-STOCKFISH_DEPTH=16
+Le variabili vanno impostate nell'ambiente del processo, ad esempio in PowerShell:
+
+```powershell
+$env:CODEX_EXECUTABLE = 'C:\percorso\codex.exe'
+$env:STOCKFISH_PATH = 'C:\percorso\stockfish.exe'
+$env:CODEX_MODEL = ''
+$env:CODEX_TIMEOUT_SECONDS = '120'
+$env:STOCKFISH_DEPTH = '16'
+pnpm start
 ```
 
-Nella chat il menu dei modelli viene popolato direttamente da `codex debug models`,
-quindi segue il catalogo esposto dal CLI autenticato. Il menu del reasoning si adatta
-ai livelli supportati dal modello selezionato; la scelta viene passata a `codex exec`
-solo quando si invia un messaggio.
+Codex viene cercato nel PATH e, su Windows, nella distribuzione locale dell'app Codex.
+`YOMI_PYTHON` consente di scegliere l'interprete per lo sviluppo. La build distribuita
+usa invece il backend incorporato. `.env.example` elenca le opzioni; non viene caricato
+automaticamente. Nessun dato di autenticazione viene trasferito al renderer.
 
-## Significato delle percentuali
+`MAIA_RUNTIME_DIR` consente di scegliere la cartella dei pesi; `MAIA_PYTHON_PATH`
+e `MAIA_DEVICE` permettono un runtime di sviluppo esterno. La distribuzione verificata
+usa CPU, senza richiedere una scheda video. Un runtime CUDA esterno richiede verifica
+separata. `.env.example` documenta anche worker e numero di thread.
 
-Le tre mosse arrivano da Stockfish MultiPV. Per ogni linea mostriamo l'**esito
-atteso per il lato al tratto**:
+## Build distribuibile Windows
 
-```text
-percentuale = probabilità di vittoria + 0,5 × probabilità di patta
+```powershell
+pnpm prepare:runtime
+pnpm package:dir
 ```
 
-Non è la probabilità che la mossa sia "corretta". Le tre percentuali quindi non
-devono sommare a 100; il tooltip mostra vittoria, patta e sconfitta separatamente.
-
-In modalità **Contro computer** giochi con il Bianco e puoi scegliere Facile,
-Medio, Difficile o Esperto. La forza è limitata tramite le opzioni UCI di
-Stockfish; in questa modalità l'interfaccia mostra soltanto le tre mosse migliori
-del giocatore e l'annullamento torna indietro di un turno completo.
-
-## Giudizio delle mosse
-
-Le mosse presenti nel piccolo repertorio locale di aperture sono indicate come
-**Da manuale**. Per le altre, Stockfish confronta i punti attesi della mossa giocata
-con quelli della sua scelta migliore. Il badge sulla casa di arrivo mostra il
-giudizio dell'ultima mossa; il registro conserva invece il giudizio di ogni mossa.
-In modalità Contro computer viene giudicata la mossa del giocatore, non quella
-generata dal motore.
+PyInstaller crea backend e worker Maia standalone; electron-builder assembla
+`release/maia/win-unpacked/`. Il worker è una cartella onedir distinta dal backend
+leggero. La build conserva i sorgenti e le licenze dei motori. La build precedente
+può restare in `release/win-unpacked`; `Start.cmd` preferisce il pacchetto Maia.
+Il pacchetto locale non è firmato. Build e runtime di Linux/macOS non sono validati.
 
 ## Architettura
 
-```text
-Browser / PWA
-  ├─ mosse → FastAPI → python-chess
-  ├─ posizione → FastAPI → Stockfish MultiPV=3
-  └─ domanda + FEN + storico + linee
-       → Codex CLI `exec --ephemeral` → account ChatGPT
-```
+- `src/desktop/`: finestra Electron, menu, preload e processo backend posseduto dall'app.
+- `src/shared/`: contratti tipizzati e funzioni di stato indipendenti dalla UI.
+- `src/renderer/controller.ts`: mosse, annullamento, analisi associate alla FEN e conversazione.
+- `src/renderer/components/`: scacchiera, registro, analisi e coach React.
+- `app/chess_service.py`: regole, ricostruzione dello storico e Stockfish.
+- `app/maia_service.py`: processo Maia posseduto, cache per storico/modello/rating e confronto candidate.
+- `app/maia_worker.py`: inferenza e campionamento Maia in runtime PyTorch separato.
+- `app/llm_service.py`: coach con contesto tattico e umano distinto.
+- `vendor/maia3/`: codice ufficiale fissato, provenienza e licenza.
 
-Ogni domanda è stateless: il browser invia la posizione e gli ultimi messaggi. Il
-processo Codex lavora in una cartella temporanea, in sandbox read-only, senza shell,
-ricerca web o lettura immagini. La chat può usare Internet per raggiungere Codex;
-scacchiera e Stockfish restano locali e funzionano anche senza login.
+Il renderer usa un bridge IPC con elenco chiuso di endpoint. Il backend ascolta su
+`127.0.0.1` e porta assegnata dal sistema, con token effimero mantenuto nel processo
+principale. La chiusura dell'app chiude backend, Stockfish e worker Maia posseduti.
+Le richieste contengono FEN iniziale e storico UCI validato; il Board conserva lo
+stack per le ripetizioni e il contesto Maia. L'LLM lavora
+con `codex exec --ephemeral`, sandbox read-only e prompt contestuale.
 
-## API principali
-
-- `GET /api/health` — disponibilità di Stockfish, Codex CLI e login ChatGPT;
-- `GET /api/game/new` — nuova posizione iniziale;
-- `POST /api/game/move` — applica una mossa legale;
-- `POST /api/game/computer-move` — fa giocare Stockfish al livello selezionato;
-- `POST /api/classify-move` — classifica una mossa legale rispetto alla posizione;
-- `GET /api/codex/options` — modelli e livelli di reasoning esposti dal Codex CLI;
-- `POST /api/analyze` — restituisce tre linee e le tre risposte a ciascuna;
-- `POST /api/chat` — discute la posizione tramite Codex CLI;
-- `GET /docs` — documentazione OpenAPI interattiva.
-
-## Verifica locale senza Docker
-
-Servono Python, Stockfish e Codex CLI già autenticato con `codex login`:
+## Verifiche
 
 ```powershell
-python -m venv .venv
-.venv\Scripts\pip install -r requirements-dev.txt
-$env:STOCKFISH_PATH = "C:\percorso\stockfish.exe"
-.venv\Scripts\pytest
-.venv\Scripts\uvicorn app.main:app --reload
+.venv\Scripts\python -m pip install -r requirements-dev.txt
+.venv\Scripts\python -m pytest -q
+pnpm check
+pnpm format:check
+pnpm smoke:desktop
 ```
 
-Il backend riusa automaticamente l'autenticazione salvata dal CLI. Per indicare un
-eseguibile non presente nel `PATH`, imposta `CODEX_EXECUTABLE`.
+Lo smoke usa un profilo desktop isolato, Maia 5M/79M e Stockfish reali, con il CLI Codex
+esplicitamente non disponibile. Verifica mosse normali/speciali, trascinamento,
+annullamento, ripetizioni, avversari, rating, pannelli e chat senza account.
+Non consuma chiamate al coach. Per provare il pacchetto invece dei sorgenti:
 
-## Prossimi passi
+```powershell
+$env:YOMI_TEST_EXECUTABLE = (Resolve-Path 'release\maia\win-unpacked\Yomi Sensei.exe').Path
+pnpm smoke:desktop
+```
 
-- import/export PGN e caricamento FEN;
-- livelli di analisi configurabili;
-- memoria locale delle partite;
-- modalità sparring e revisione post-partita;
-- eventuale wrapper Tauri per un installer nativo.
+Screenshot e rapporto sono in `artifacts/` (non tracciato). I test del controller
+simulano anche risposte tardive, errori del computer e reset della conversazione.
+
+`python scripts/benchmark_maia.py` (con l'interprete `.venv`) misura inferenza reale
+e salva `artifacts/maia-benchmark.json`. Sulle 11 posizioni verificate su questa
+macchina, mediana a caldo CPU: circa 34 ms (5M), 193 ms (79M). Sono misure del worker,
+non il tempo totale che comprende Stockfish e il rendering.
+
+## Memoria e lavoro residuo
+
+Leggi [Kiroku](kiroku/START_HERE.md) e il [track Maia](kiroku/tracks/maia-integration/START_HERE.md).
+Gli issue dell'analisi restano identificati nel [backlog](kiroku/WORK.md).
+YS-01 è corretto tramite lo storico completo: triplice/quintupla ripetizione sono
+rilevate. La partita termina automaticamente quando la patta per triplice ripetizione
+è reclamabile. Le chiamate legacy con la sola FEN restano compatibili ma non possono
+ricostruire le ripetizioni. Persistenza, PGN/FEN e revisione post-partita
+restano sviluppi successivi. `tools/` è materiale locale preesistente estraneo all'app.

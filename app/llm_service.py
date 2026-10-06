@@ -15,7 +15,11 @@ from app.models import ChatRequest
 
 COACH_INSTRUCTIONS = """Sei Yomi Sensei, un coach di scacchi paziente e concreto.
 Rispondi in italiano, a meno che l'utente chieda un'altra lingua.
-La posizione FEN, lo storico PGN e l'analisi Stockfish forniti sono la fonte di verità.
+La posizione FEN e lo storico PGN definiscono la partita. Stockfish valuta la qualità
+tattica; Maia-3 stima le scelte umane al rating indicato. Distingui probabilità di
+scegliere una mossa, W/D/L Maia e valutazioni Stockfish: non sono la stessa metrica.
+Una mossa comune può essere un errore; spiega il confronto senza attribuire a Maia
+pensieri o intenzioni individuali che il modello non osserva.
 Non inventare mosse legali o valutazioni: quando citi una variante, usa quelle fornite
 oppure chiarisci che è un'idea da verificare. Spiega piani, tattiche, errori e alternative
 in modo comprensibile. Distingui sempre la valutazione del motore dalla tua spiegazione.
@@ -97,7 +101,7 @@ class CodexCliService:
     ) -> list[str]:
         if self.executable is None:
             raise CodexUnavailable(
-                "Codex CLI non è installato o non è nel PATH del container."
+                "Codex CLI non è installato o non è nel PATH."
             )
 
         arguments = [
@@ -156,6 +160,28 @@ class CodexCliService:
             )
         opponent_context = "\n".join(opponent_lines) or "Risposte avversarie non disponibili."
 
+        human_context = "Analisi Maia non disponibile."
+        if request.human_analysis:
+            human = request.human_analysis
+            human_lines = [
+                f"Maia-3 {human.model}: rating Bianco {human.white_elo}, Nero {human.black_elo}. "
+                "Le probabilità delle mosse sono stime del modello su gioco umano, non frequenze misurate nella partita."
+            ]
+            for candidate in human.candidates:
+                quality = candidate.stockfish.evaluation if candidate.stockfish else "non disponibile"
+                human_lines.append(
+                    f"{candidate.rank}. {candidate.san} ({candidate.uci}) | "
+                    f"probabilità scelta umana {candidate.move_probability_percent:.2f}% | "
+                    f"W/D/L Maia {candidate.win_percent}/{candidate.draw_percent}/{candidate.loss_percent} | "
+                    f"valutazione Stockfish {quality}"
+                )
+            selected_reply = next((reply for reply in human.replies if reply.after_uci == request.selected_move_uci), None)
+            if selected_reply:
+                human_lines.append(f"Risposte umane probabili dopo {selected_reply.after_san}:")
+                for candidate in selected_reply.candidates:
+                    human_lines.append(f"{candidate.san}: probabilità scelta umana {candidate.move_probability_percent:.2f}%")
+            human_context = "\n".join(human_lines)
+
         history_lines = [
             f"{item.role.upper()}: {item.content}" for item in request.history
         ]
@@ -169,6 +195,7 @@ class CodexCliService:
             f"Top mosse Stockfish:\n{engine_context}\n\n"
             f"Top risposte avversarie dopo {request.opponent_after_san or 'la prima scelta'}:\n"
             f"{opponent_context}\n\n"
+            f"SCELTE UMANE MAIA-3\n{human_context}\n\n"
             "CONVERSAZIONE RECENTE\n"
             f"{history}\n\n"
             "DOMANDA ATTUALE DELL'UTENTE\n"
@@ -222,7 +249,7 @@ class CodexCliService:
     async def chat(self, request: ChatRequest) -> str:
         if not self.available:
             raise CodexUnavailable(
-                "Codex CLI non è disponibile. Installalo oppure usa l'immagine Docker inclusa."
+                "Codex CLI non è disponibile. Installalo o configura CODEX_EXECUTABLE."
             )
         if request.model and not MODEL_SLUG_PATTERN.fullmatch(request.model):
             raise CodexUnavailable("Il modello Codex selezionato non è valido.")

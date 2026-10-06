@@ -2,28 +2,17 @@
 
 ## In corso
 
-- Nessuna attività in corso dopo la consegna dell'MVP.
+- Nessuna attività in corso; integrazione Maia completata nel track maia-integration.
 
 ## TODO
 
-### Attività: Verifica end-to-end Docker
+### Attività: Consolidamento e manutenzione — YS-05
 
 Stato: todo
 Completamento:
-L'immagine si costruisce, `/api/health` è verde, Stockfish restituisce tre mosse e la
-chat risponde dopo login ChatGPT del Codex CLI nel volume Docker.
-
-### Attività: Test delle mosse speciali nell'interfaccia
-
-Stato: todo
-Completamento:
-Arrocco, en passant, promozione e annullamento sono verificati manualmente nel browser.
-
-### Attività: Confermare la metrica percentuale
-
-Stato: todo
-Completamento:
-L'utente approva esito atteso W/D/L oppure sceglie una metrica alternativa esplicitata.
+CI e dipendenze Python bloccate completano la riproducibilità delle build.
+Già completati: test frontend, lockfile pnpm, README desktop e smoke automatico.
+`tools/` (circa 2 GB di Magpie non tracciato) è preservato ed escluso dal pacchetto.
 
 ## Bloccato
 
@@ -31,13 +20,52 @@ L'utente approva esito atteso W/D/L oppure sceglie una metrica alternativa espli
 
 ## Fatto
 
-- Creato backend stateless con regole, Stockfish MultiPV e chat Codex CLI.
-- Rimossa l'integrazione Responses API/API key e aggiunto login ChatGPT persistente in Docker.
-- Creata interfaccia responsive con scacchiera, suggerimenti, storico e chat.
-- Aggiunti Dockerfile, Compose, PWA, configurazione, test e documentazione.
-- Superati 11 test e verificati nel browser layout desktop/mobile, mossa e annullamento.
-- Verificata una chiamata reale stateless al Codex CLI autenticato con ChatGPT.
+### Attività: Ripetizioni non riconosciute — YS-01
+
+Stato: done
+Completamento:
+FEN iniziale e storico UCI validato ricostruiscono il Board con stack. Test triplice/quintupla,
+storico illecito/incoerente e smoke desktop della triplice ripetizione superati.
+Le chiamate legacy con sola FEN non possono ricostruire le ripetizioni.
+
+### Attività: Metriche esplicite
+
+Stato: done
+Completamento:
+Il flusso approvato con «procedi» mantiene tre misure distinte: probabilità della mossa
+umana, W/D/L Maia e esito atteso Stockfish. Etichette e tooltip sono verificati nel desktop.
+
+- Desktop Electron/React/TypeScript con shell ispirata a ComprehensionIDE e backend locale gestito.
+- Pacchetto Windows con Python e Stockfish, avviabile da `Start.cmd` senza Docker.
+- Arrocco, en passant, sottopromozione, trascinamento e annullamento verificati automaticamente nel desktop con Stockfish reale. La valutazione manuale dell'utente resta distinta.
+- Maia-3 principale, analisi umana e coach con metriche distinte; modelli 5M/79M, rating separati e pacchetto Windows verificati.
+- Passano 36 test Python, 14 TypeScript e smoke sorgenti/pacchetto con Maia/Stockfish reali, senza chiamate account Codex.
+
+### Attività: Annullamento contro computer — YS-02
+
+Stato: done
+Completamento:
+Il controller annulla una o due semimosse in base all'ultimo attore, tornando al
+Bianco anche dopo una risposta fallita. Test di regressione in `tests/frontend/controller.test.ts`.
+Difetto precedente: rimuoveva sempre due semimosse dopo `1.e4 e5 2.Bc4` senza risposta.
+
+### Attività: Coerenza FEN e analisi nella chat — YS-03
+
+Stato: done
+Completamento:
+Analisi legata a FEN, generazione partita e richiesta; risposte obsolete ignorate.
+La chat invia solo candidate della propria FEN. Test con classificazione pendente,
+analisi tardiva sulla stessa FEN e nuova partita durante la chat.
+Difetto precedente: dopo `e4`, FEN con Nero al tratto e candidata `e2e4` potevano mescolarsi.
+
+### Attività: Risposte avversarie nascoste — YS-04
+
+Stato: done
+Completamento:
+Risposte visibili per la candidata selezionata in modalità Libera; non richieste
+contro il computer. Test controller e smoke con tre risposte Stockfish visibili.
+Difetto precedente: `syncGameModeUi` impostava sempre `opponentAnalysis.hidden = true`.
 
 ## Annullato
 
-- Nessuna attività annullata.
+- Distribuzione Docker: sostituita dal desktop locale su richiesta del 2026-10-06.

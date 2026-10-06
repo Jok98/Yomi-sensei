@@ -10,6 +10,7 @@ import type { Color, Promotion } from '../../shared/types';
 import type { GameController, GameState } from '../controller';
 import { Icon } from '../Icon';
 import { Piece } from './Piece';
+import { EvaluationBar } from './EvaluationBar';
 
 const names: Record<string, string> = {
   k: 're',
@@ -176,143 +177,147 @@ export function Board({
                 : 'Partita libera'}
             </small>
           </div>
-          <div
-            ref={boardRef}
-            className="chessboard"
-            role="grid"
-            aria-label="Scacchiera"
-            aria-describedby="board-annotation-help"
-            aria-busy={!!game.busy}
-            onContextMenu={(event) => event.preventDefault()}
-            onPointerDownCapture={(event) => {
-              if (event.button === 0) {
-                setAnnotations({ position, marks: [] });
+          <div className="board-surface">
+            <EvaluationBar game={game} orientation={orientation} />
+            <div
+              ref={boardRef}
+              className="chessboard"
+              role="grid"
+              aria-label="Scacchiera"
+              aria-describedby="board-annotation-help"
+              aria-busy={!!game.busy}
+              onContextMenu={(event) => event.preventDefault()}
+              onPointerDownCapture={(event) => {
+                if (event.button === 0) {
+                  setAnnotations({ position, marks: [] });
+                  cancelDrawing();
+                  return;
+                }
+                if (event.button !== 2) return;
+                event.preventDefault();
+                event.stopPropagation();
+                const from = atPointer(event);
+                if (!from) return;
+                setSelected(null);
+                gesture.current = { from, pointerId: event.pointerId, position };
+                event.currentTarget.setPointerCapture(event.pointerId);
+                setDraft({ from, to: from });
+              }}
+              onPointerMove={(event) => {
+                const current = gesture.current;
+                if (!current || current.pointerId !== event.pointerId) return;
+                if (current.position !== position || !(event.buttons & 2)) return cancelDrawing();
+                const to = atPointer(event);
+                setDraft(to ? { from: current.from, to } : null);
+              }}
+              onPointerUp={(event) => {
+                const current = gesture.current;
+                if (!current || current.pointerId !== event.pointerId) return;
+                event.preventDefault();
+                const to = atPointer(event);
+                if (to && current.position === position) {
+                  const mark = { from: current.from, to };
+                  setAnnotations((previous) => {
+                    const marks = previous.position === position ? previous.marks : [];
+                    const exists = marks.some(
+                      (item) => item.from === mark.from && item.to === mark.to,
+                    );
+                    return {
+                      position,
+                      marks: exists
+                        ? marks.filter((item) => item.from !== mark.from || item.to !== mark.to)
+                        : [...marks, mark],
+                    };
+                  });
+                }
                 cancelDrawing();
-                return;
-              }
-              if (event.button !== 2) return;
-              event.preventDefault();
-              event.stopPropagation();
-              const from = atPointer(event);
-              if (!from) return;
-              setSelected(null);
-              gesture.current = { from, pointerId: event.pointerId, position };
-              event.currentTarget.setPointerCapture(event.pointerId);
-              setDraft({ from, to: from });
-            }}
-            onPointerMove={(event) => {
-              const current = gesture.current;
-              if (!current || current.pointerId !== event.pointerId) return;
-              if (current.position !== position || !(event.buttons & 2)) return cancelDrawing();
-              const to = atPointer(event);
-              setDraft(to ? { from: current.from, to } : null);
-            }}
-            onPointerUp={(event) => {
-              const current = gesture.current;
-              if (!current || current.pointerId !== event.pointerId) return;
-              event.preventDefault();
-              const to = atPointer(event);
-              if (to && current.position === position) {
-                const mark = { from: current.from, to };
-                setAnnotations((previous) => {
-                  const marks = previous.position === position ? previous.marks : [];
-                  const exists = marks.some(
-                    (item) => item.from === mark.from && item.to === mark.to,
-                  );
-                  return {
-                    position,
-                    marks: exists
-                      ? marks.filter((item) => item.from !== mark.from || item.to !== mark.to)
-                      : [...marks, mark],
-                  };
-                });
-              }
-              cancelDrawing();
-            }}
-            onPointerCancel={cancelDrawing}
-            onLostPointerCapture={cancelDrawing}
-          >
-            {squares(orientation).map((square, index) => {
-              const piece = pieces[square];
-              const isLast = last?.uci.slice(0, 2) === square || last?.uci.slice(2, 4) === square;
-              const isPreview = preview?.slice(0, 2) === square || preview?.slice(2, 4) === square;
-              const badge =
-                lastJudged?.uci.slice(2, 4) === square ? lastJudged.classification : null;
-              const label = `${square}${piece ? ` · ${names[piece.toLowerCase()]} ${pieceColor(piece) === 'white' ? 'bianco' : 'nero'}` : ''}`;
-              return (
-                <button
-                  key={square}
-                  type="button"
-                  role="gridcell"
-                  data-square={square}
-                  aria-label={label}
-                  aria-selected={selected === square}
-                  disabled={!playable}
-                  className={`square ${(square.charCodeAt(0) - 97 + Number(square[1])) % 2 ? 'light' : 'dark'}${isLast ? ' last-move' : ''}${selected === square ? ' selected' : ''}${destinations.has(square) ? ' legal' : ''}${isPreview && !selected ? ' preview' : ''}`}
-                  onClick={() => {
-                    if (selected && destinations.has(square)) tryMove(selected, square);
-                    else
-                      setSelected(
-                        selected === square ? null : legalFrom(square).length ? square : null,
-                      );
-                  }}
-                  onDragOver={(event) => {
-                    if (playable) event.preventDefault();
-                  }}
-                  onDrop={(event) => {
-                    event.preventDefault();
-                    tryMove(event.dataTransfer.getData('text/plain'), square);
-                  }}
-                >
-                  {index % 8 === 0 && <span className="coordinate rank">{square[1]}</span>}
-                  {index >= 56 && <span className="coordinate file">{square[0]}</span>}
-                  {piece && (
-                    <span
-                      className={`piece ${pieceColor(piece)}`}
-                      draggable={legalFrom(square).length > 0}
-                      onDragStart={(event) => {
-                        event.dataTransfer.setData('text/plain', square);
-                        event.dataTransfer.effectAllowed = 'move';
-                        setSelected(square);
-                      }}
-                      onDragEnd={() => setSelected(null)}
-                    >
-                      <Piece piece={piece} />
-                    </span>
-                  )}
-                  {badge && (
-                    <span className={`move-badge judgement-${badge.code}`} title={badge.label}>
-                      {badge.code === 'book' ? <Icon name="book" size={14} /> : badge.marker}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-            <svg className="board-overlay" viewBox="0 0 800 800" aria-hidden="true">
-              {suggestedArrows &&
-                candidates?.map((candidate) => (
-                  <Mark
-                    key={candidate.uci}
-                    kind="suggested"
-                    orientation={orientation}
-                    rank={candidate.rank}
-                    active={candidate.uci === game.activeCandidate}
-                    mark={{ from: candidate.uci.slice(0, 2), to: candidate.uci.slice(2, 4) }}
-                  />
-                ))}
-              {annotations.position === position &&
-                annotations.marks.map((mark) => (
-                  <Mark
-                    key={mark.from + mark.to}
-                    kind="manual"
-                    orientation={orientation}
-                    mark={mark}
-                  />
-                ))}
-              {draft && gesture.current?.position === position && (
-                <Mark kind="draft" orientation={orientation} mark={draft} />
-              )}
-            </svg>
+              }}
+              onPointerCancel={cancelDrawing}
+              onLostPointerCapture={cancelDrawing}
+            >
+              {squares(orientation).map((square, index) => {
+                const piece = pieces[square];
+                const isLast = last?.uci.slice(0, 2) === square || last?.uci.slice(2, 4) === square;
+                const isPreview =
+                  preview?.slice(0, 2) === square || preview?.slice(2, 4) === square;
+                const badge =
+                  lastJudged?.uci.slice(2, 4) === square ? lastJudged.classification : null;
+                const label = `${square}${piece ? ` · ${names[piece.toLowerCase()]} ${pieceColor(piece) === 'white' ? 'bianco' : 'nero'}` : ''}`;
+                return (
+                  <button
+                    key={square}
+                    type="button"
+                    role="gridcell"
+                    data-square={square}
+                    aria-label={label}
+                    aria-selected={selected === square}
+                    disabled={!playable}
+                    className={`square ${(square.charCodeAt(0) - 97 + Number(square[1])) % 2 ? 'light' : 'dark'}${isLast ? ' last-move' : ''}${selected === square ? ' selected' : ''}${destinations.has(square) ? ' legal' : ''}${isPreview && !selected ? ' preview' : ''}`}
+                    onClick={() => {
+                      if (selected && destinations.has(square)) tryMove(selected, square);
+                      else
+                        setSelected(
+                          selected === square ? null : legalFrom(square).length ? square : null,
+                        );
+                    }}
+                    onDragOver={(event) => {
+                      if (playable) event.preventDefault();
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      tryMove(event.dataTransfer.getData('text/plain'), square);
+                    }}
+                  >
+                    {index % 8 === 0 && <span className="coordinate rank">{square[1]}</span>}
+                    {index >= 56 && <span className="coordinate file">{square[0]}</span>}
+                    {piece && (
+                      <span
+                        className={`piece ${pieceColor(piece)}`}
+                        draggable={legalFrom(square).length > 0}
+                        onDragStart={(event) => {
+                          event.dataTransfer.setData('text/plain', square);
+                          event.dataTransfer.effectAllowed = 'move';
+                          setSelected(square);
+                        }}
+                        onDragEnd={() => setSelected(null)}
+                      >
+                        <Piece piece={piece} />
+                      </span>
+                    )}
+                    {badge && (
+                      <span className={`move-badge judgement-${badge.code}`} title={badge.label}>
+                        {badge.code === 'book' ? <Icon name="book" size={14} /> : badge.marker}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+              <svg className="board-overlay" viewBox="0 0 800 800" aria-hidden="true">
+                {suggestedArrows &&
+                  candidates?.map((candidate) => (
+                    <Mark
+                      key={candidate.uci}
+                      kind="suggested"
+                      orientation={orientation}
+                      rank={candidate.rank}
+                      active={candidate.uci === game.activeCandidate}
+                      mark={{ from: candidate.uci.slice(0, 2), to: candidate.uci.slice(2, 4) }}
+                    />
+                  ))}
+                {annotations.position === position &&
+                  annotations.marks.map((mark) => (
+                    <Mark
+                      key={mark.from + mark.to}
+                      kind="manual"
+                      orientation={orientation}
+                      mark={mark}
+                    />
+                  ))}
+                {draft && gesture.current?.position === position && (
+                  <Mark kind="draft" orientation={orientation} mark={draft} />
+                )}
+              </svg>
+            </div>
           </div>
           <div className="board-player">
             <span className="side-piece">

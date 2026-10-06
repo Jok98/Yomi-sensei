@@ -2,7 +2,7 @@
 
 ## In corso
 
-- Nessuna attività in corso; scacchiera 0.5.2 verificata nel track board-workspace.
+- Nessuna attività in corso; scacchiera con barra 0.5.3 verificata nel track board-workspace.
 
 ## TODO
 
@@ -19,6 +19,15 @@ Già completati: test frontend, lockfile pnpm, README desktop e smoke automatico
 - Nessuna attività bloccata.
 
 ## Fatto
+
+### Attività: Barra del vantaggio Stockfish
+
+Stato: done
+Completamento:
+Barra verticale dal Bianco, colori ruotabili e valutazione indipendente dalla candidata/fonte.
+Matto/patta verificati nei test; aggiornamento e matto verificati nel desktop sorgenti/pacchetto.
+Passano 40 test Python e 24 TypeScript; nove sequenze per smoke con spostamento 0 px di scacchiera/barra.
+Versione Windows 0.5.3 avviabile da Start.cmd.
 
 ### Attività: Scacchiera instabile durante l'analisi — YS-06
 

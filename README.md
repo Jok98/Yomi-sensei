@@ -6,7 +6,7 @@ come riferimento: scacchiera centrale, navigazione a sinistra, analisi sotto il 
 
 ## Avvio Windows
 
-Apri **Start.cmd**. Avvia il pacchetto corrente in `release/0.5.2/win-unpacked/Yomi Sensei.exe`.
+Apri **Start.cmd**. Avvia il pacchetto corrente in `release/0.5.3/win-unpacked/Yomi Sensei.exe`.
 Questa cartella include Electron, backend Python, worker Maia, pesi 5M/79M e Stockfish: l'avvio
 non richiede Docker, Python, Node o pnpm installati. Conserva tutta la cartella,
 non soltanto il file `.exe`.
@@ -20,6 +20,11 @@ I motori e la scacchiera funzionano anche senza Codex. Non usa `OPENAI_API_KEY`.
 - **Partita / Registro**, sulla barra sinistra: modalità, avversario, rating e mosse classificate.
 - **Scacchiera** centrale: colori classici beige/marrone e pezzi SVG CBurnett; click o trascinamento,
   arrocco, en passant e selezione della promozione.
+- **Barra del vantaggio** a sinistra del tavoliere: valutazione Stockfish in pedoni, positiva per il
+  Bianco e negativa per il Nero. Le parti bianca/nera seguono la rotazione; `M` indica matto e `½` patta.
+  Usa la prima candidata Stockfish anche con analisi Maia o una candidata diversa selezionata.
+  Durante il ricalcolo mostra i puntini e l'ultima valutazione attenuata; `—` indica un dato assente.
+  La proporzione è una scala visiva del vantaggio, separata dalle probabilità Maia e W/D/L.
 - **Analisi** sotto la scacchiera: candidate e risposte in schede compatte, con fonti
   **Maia · umana** e **Stockfish · tattica**. Il pannello mantiene un'altezza compatta e stabile durante il ricalcolo
   e si riduce con il tab o la freccia a destra. La barra destra apre indipendentemente il **Coach**.
@@ -120,10 +125,10 @@ pnpm package:dir
 ```
 
 PyInstaller crea backend e worker Maia standalone; electron-builder assembla
-`release/0.5.2/win-unpacked/`. Il worker è una cartella onedir distinta dal backend
+`release/0.5.3/win-unpacked/`. Il worker è una cartella onedir distinta dal backend
 leggero. La build conserva i sorgenti e le licenze dei motori e dei pezzi SVG.
-Le build precedenti possono restare in `release/0.5.1/`, `release/maia/` e `release/win-unpacked`;
-`Start.cmd` preferisce la versione 0.5.2. Un'app già aperta va chiusa e riavviata per vedere gli aggiornamenti.
+Le build precedenti possono restare in `release/0.5.2/`, `release/0.5.1/`, `release/maia/` e `release/win-unpacked`;
+`Start.cmd` preferisce la versione 0.5.3. Un'app già aperta va chiusa e riavviata per vedere gli aggiornamenti.
 Il pacchetto locale non è firmato. Build e runtime di Linux/macOS non sono validati.
 
 ## Architettura
@@ -150,7 +155,7 @@ con `codex exec --ephemeral`, sandbox read-only e prompt contestuale.
 
 ```powershell
 .venv\Scripts\python -m pip install -r requirements-dev.txt
-.venv\Scripts\python -m pytest -q
+.venv\Scripts\python -m pytest -q tests
 pnpm check
 pnpm format:check
 pnpm smoke:desktop
@@ -164,13 +169,14 @@ Lo smoke usa un profilo desktop isolato, Maia 5M/79M e Stockfish reali, con il C
 esplicitamente non disponibile. Verifica mosse normali/speciali, trascinamento,
 annullamento, ripetizioni, avversari, rating, pannelli e chat senza account.
 Verifica anche annotazioni col mouse, rotazione, frecce suggerite, preferenza persistente,
-dimensionamento del dock e asset SVG locali.
+dimensionamento del dock e asset SVG locali. La barra è verificata con Stockfish reale:
+prospettiva Bianco/Nero, rotazione, indipendenza dalla fonte/candidata, caricamento e matto.
 Il rapporto include i rettangoli campionati durante il caricamento: posizione e dimensioni
-della scacchiera devono restare invariati entro 0,5 px, in modalità Libera e Computer.
+della scacchiera e della barra devono restare invariati entro 0,5 px, in modalità Libera e Computer.
 Non consuma chiamate al coach. Per provare il pacchetto invece dei sorgenti:
 
 ```powershell
-$env:YOMI_TEST_EXECUTABLE = (Resolve-Path 'release\0.5.2\win-unpacked\Yomi Sensei.exe').Path
+$env:YOMI_TEST_EXECUTABLE = (Resolve-Path 'release\0.5.3\win-unpacked\Yomi Sensei.exe').Path
 pnpm smoke:desktop
 ```
 

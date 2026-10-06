@@ -18,6 +18,7 @@ class PositionState(BaseModel):
     turn: Literal["white", "black"]
     status: str
     is_game_over: bool
+    result: Literal["1-0", "0-1", "1/2-1/2"] | None = None
     last_move_san: str | None = None
     last_move_uci: str | None = None
 

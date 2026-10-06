@@ -34,3 +34,14 @@ Dependencies: M-01 e M-02 completati; segnalazione dell'utente del 2026-10-06.
 Validation: Campionare i rettangoli durante caricamento, mossa, annullamento e ricalcolo in sorgenti/pacchetto.
 Completion criteria: Scostamento massimo 0,5 px, caricamento realmente osservato e avvio della build corretta.
 Risks: Non lasciare che errori, risultati o note modifichino l'altezza esterna del dock.
+
+### M-04: Barra del vantaggio Stockfish
+
+Status: completed
+Objective: Mostrare a fianco della scacchiera il vantaggio Bianco/Nero e la valutazione tattica.
+Scope: Barra verticale, punteggio normalizzato al Bianco, rotazione, caricamento e risultati terminali.
+Expected artifacts: EvaluationBar.tsx, helper/test di valutazione, risultato posizione e pacchetto Windows.
+Dependencies: M-03 completato; mantenere invariata la geometria durante il ricalcolo.
+Validation: Test di prospettiva/matto/patta e smoke sorgenti/pacchetto con misure di layout.
+Completion criteria: Segno corretto con Nero al tratto, valutazione indipendente dalla candidata/fonte e nessuno spostamento durante il calcolo.
+Risks: Confondere probabilità Maia con vantaggio tattico, o mostrare un valore precedente senza indicare l'aggiornamento.

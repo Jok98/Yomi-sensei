@@ -25,6 +25,7 @@ const desktop = await electron.launch({
 const errors = [];
 const results = [];
 const layoutStability = [];
+const evaluationChecks = [];
 const boardOnly = process.argv.includes('--board-only');
 async function capture(file) {
   const data = await desktop.evaluate(async ({ BrowserWindow }) => {
@@ -50,18 +51,79 @@ try {
   };
   await ready();
   console.log('Desktop ready');
+  const evaluationSnapshot = () =>
+    page.evaluate(() => {
+      const bar = document.querySelector('.evaluation-bar');
+      const board = document.querySelector('.chessboard').getBoundingClientRect();
+      const rect = bar.getBoundingClientRect();
+      const white = bar.querySelector('.evaluation-white').getBoundingClientRect();
+      return {
+        state: bar.dataset.state,
+        orientation: bar.dataset.orientation,
+        score: Number(bar.dataset.whiteScore),
+        share: Number(bar.dataset.whiteShare),
+        label: bar.querySelector('.evaluation-value').textContent,
+        boardTop: board.top,
+        boardHeight: board.height,
+        boardLeft: board.left,
+        barTop: rect.top,
+        barHeight: rect.height,
+        barRight: rect.right,
+        whiteTop: white.top,
+        whiteBottom: white.bottom,
+        barBottom: rect.bottom,
+      };
+    });
+  const checkEvaluationLayout = async (label) => {
+    const value = await evaluationSnapshot();
+    assert.equal(value.state, 'ready');
+    assert.ok(Math.abs(value.barTop - value.boardTop) <= 0.5);
+    assert.ok(Math.abs(value.barHeight - value.boardHeight) <= 0.5);
+    assert.ok(value.barRight < value.boardLeft);
+    assert.ok(
+      Math.abs(
+        value.orientation === 'white'
+          ? value.whiteBottom - value.barBottom
+          : value.whiteTop - value.barTop,
+      ) <= 1.5,
+    );
+    evaluationChecks.push({ case: label, ...value });
+    return value;
+  };
+  const checkStockfishPerspective = async (label) => {
+    const value = await checkEvaluationLayout(label);
+    const score = await page
+      .locator('.recommendations .candidate-score strong')
+      .first()
+      .innerText();
+    const blackTurn = /Nero/.test(await page.locator('.analysis-summary strong').innerText());
+    const expected = score.startsWith('#')
+      ? (score.slice(1).startsWith('-') ? -1 : 1) * (blackTurn ? -1 : 1) * 10
+      : Number(score) * (blackTurn ? -1 : 1);
+    assert.ok(Math.abs(value.score - expected) < 1e-10, `${label}: White perspective of ${score}`);
+  };
+  const initialEvaluation = await checkEvaluationLayout('initial-white-orientation');
   const withStableBoard = async (label, action, expectLoading = true) => {
     await page.evaluate(() => {
       const samples = [];
       const measure = () => {
         const board = document.querySelector('.chessboard').getBoundingClientRect();
         const dock = document.querySelector('.analysis-dock').getBoundingClientRect();
+        const evaluation = document.querySelector('.evaluation-bar');
+        const bar = evaluation.getBoundingClientRect();
         samples.push({
           x: board.x,
           y: board.y,
           width: board.width,
           height: board.height,
           dockHeight: dock.height,
+          barX: bar.x,
+          barY: bar.y,
+          barWidth: bar.width,
+          barHeight: bar.height,
+          evaluationUpdating:
+            evaluation.dataset.state === 'updating' &&
+            evaluation.getAttribute('aria-busy') === 'true',
           loading: !!document.querySelector('.analysis-progress'),
         });
       };
@@ -95,21 +157,32 @@ try {
       label,
       samples: samples.length,
       loadingSamples: samples.filter((sample) => sample.loading).length,
+      evaluationUpdatingSamples: samples.filter((sample) => sample.evaluationUpdating).length,
       boardXRange: range('x'),
       boardYRange: range('y'),
       boardWidthRange: range('width'),
       boardHeightRange: range('height'),
       dockHeightRange: range('dockHeight'),
+      barXRange: range('barX'),
+      barYRange: range('barY'),
+      barWidthRange: range('barWidth'),
+      barHeightRange: range('barHeight'),
     };
     layoutStability.push(result);
     console.log(`Layout ${label}: ${JSON.stringify(result)}`);
     if (expectLoading) assert.ok(result.loadingSamples > 0, `${label}: loading state was sampled`);
+    if (expectLoading)
+      assert.ok(result.evaluationUpdatingSamples > 0, `${label}: evaluation updating was sampled`);
     for (const field of [
       'boardXRange',
       'boardYRange',
       'boardWidthRange',
       'boardHeightRange',
       'dockHeightRange',
+      'barXRange',
+      'barYRange',
+      'barWidthRange',
+      'barHeightRange',
     ])
       assert.ok(
         result[field] <= 0.5,
@@ -160,6 +233,9 @@ try {
     'M 650 750 L 650 550 L 581 550',
   );
   await page.getByRole('button', { name: 'Ruota scacchiera', exact: true }).click();
+  const flippedEvaluation = await checkEvaluationLayout('black-orientation');
+  assert.equal(flippedEvaluation.score, initialEvaluation.score);
+  assert.equal(flippedEvaluation.share, initialEvaluation.share);
   assert.equal(
     await page.locator('.manual-arrow[data-from="e2"] path').getAttribute('d'),
     'M 350 150 L 350 319',
@@ -177,6 +253,7 @@ try {
   const candidate = page.locator('[data-testid="human-analysis"] .candidate-row').nth(1);
   const candidateUci = await candidate.getAttribute('data-candidate-uci');
   await candidate.click();
+  assert.equal((await evaluationSnapshot()).score, initialEvaluation.score);
   assert.equal(
     await page.locator('.suggested-arrow.active').getAttribute('data-from'),
     candidateUci.slice(0, 2),
@@ -204,7 +281,10 @@ try {
   assert.match(await page.locator('[data-testid="human-analysis"]').innerText(), /Stockfish/);
   results.push('Startup, real Maia-3 79M policy and Stockfish evaluations, visible human replies');
   await capture('artifacts/desktop-maia.png');
+  const humanEvaluation = await evaluationSnapshot();
   await page.getByRole('button', { name: 'Stockfish · tattica', exact: true }).click();
+  assert.equal((await evaluationSnapshot()).score, humanEvaluation.score);
+  await checkStockfishPerspective('stockfish-best-white-turn');
   await arrows.check();
   assert.equal(await page.locator('.suggested-arrow').count(), 3);
   const tacticalMoves = await page
@@ -273,6 +353,12 @@ try {
   await page.locator('[data-square="e2"] .piece').dragTo(page.locator('[data-square="e4"]'));
   await ready();
   assert.match(await page.locator('.move-list').innerText(), /e4/);
+  await page.getByRole('button', { name: 'Stockfish · tattica', exact: true }).click();
+  await checkStockfishPerspective('stockfish-best-black-turn');
+  await page.locator('.recommendations .candidate-row').nth(1).click();
+  const selectedEvaluation = await evaluationSnapshot();
+  await page.getByRole('button', { name: 'Maia · umana', exact: true }).click();
+  assert.equal((await evaluationSnapshot()).score, selectedEvaluation.score);
   results.push('Click move, undo and drag-and-drop');
   console.log(results.at(-1));
   if (!boardOnly) {
@@ -298,6 +384,9 @@ try {
     await reset();
     for (const uci of ['g1f3', 'g8f6', 'f3g1', 'f6g8', 'g1f3', 'g8f6', 'f3g1']) await move(uci);
     assert.match(await page.locator('.position-status').innerText(), /triplice ripetizione/);
+    const drawnEvaluation = await checkEvaluationLayout('threefold-draw');
+    assert.equal(drawnEvaluation.share, 50);
+    assert.equal(drawnEvaluation.label, '½');
     assert.equal(await page.locator('[data-square="f6"]').isEnabled(), false);
     const terminalDockHeight = (await page.locator('.analysis-dock').boundingBox()).height;
     assert.ok(Math.abs(terminalDockHeight - layout.dockHeight) <= 0.5);
@@ -350,6 +439,17 @@ try {
     await page.getByRole('button', { name: 'Libera', exact: true }).click();
     await ready();
   }
+  await page.getByRole('button', { name: 'Libera', exact: true }).click();
+  await reset();
+  for (const uci of ['f2f3', 'e7e5', 'g2g4', 'd8h4']) await move(uci);
+  assert.match(await page.locator('.position-status').innerText(), /Scacco matto/);
+  const matedEvaluation = await checkEvaluationLayout('black-checkmate');
+  assert.equal(matedEvaluation.share, 0);
+  assert.equal(matedEvaluation.label, 'M0');
+  await capture('artifacts/desktop-evaluation-mate.png');
+  results.push(
+    'Stockfish advantage bar: White perspective, rotation, source/candidate independence, updating indicator and checkmate result',
+  );
   await reset();
   await page.getByRole('button', { name: 'Mostra coach', exact: true }).click();
   await page
@@ -409,6 +509,7 @@ try {
   });
   assert.ok(compactCoachLayout.toolbarHeight <= 38);
   assert.ok(compactCoachLayout.boardWidth >= 300);
+  await checkEvaluationLayout('compact-with-coach');
   await withStableBoard('compact-move-e7e5', () => move('e7e5'));
   await page.getByRole('button', { name: 'Stockfish · tattica', exact: true }).click();
   await withStableBoard('compact-refresh-stockfish', () =>
@@ -444,6 +545,7 @@ try {
         layout,
         compactCoachLayout,
         layoutStability,
+        evaluationChecks,
       },
       null,
       2,

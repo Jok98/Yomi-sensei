@@ -21,6 +21,7 @@ export interface Position {
   turn: Color;
   status: string;
   is_game_over: boolean;
+  result?: '1-0' | '0-1' | '1/2-1/2' | null;
   last_move_san: string | null;
   last_move_uci: string | null;
 }

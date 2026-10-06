@@ -1,6 +1,6 @@
 {
   "name": "yomi-sensei",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "private": true,
   "type": "module",
   "description": "Scacchiera desktop con Stockfish e coach Codex.",
@@ -45,7 +45,7 @@
     "appId": "dev.yomi.sensei",
     "productName": "Yomi Sensei",
     "directories": {
-      "output": "release/0.5.2"
+      "output": "release/0.5.3"
     },
     "files": [
       "dist/**/*",

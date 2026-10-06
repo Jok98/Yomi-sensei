@@ -146,12 +146,14 @@ def position_state(
     last_move_san: str | None = None,
     last_move_uci: str | None = None,
 ) -> PositionState:
+    outcome = board.outcome(claim_draw=True)
     return PositionState(
         fen=board.fen(),
         legal_moves=_legal_moves(board),
         turn="white" if board.turn else "black",
         status=_game_status(board),
-        is_game_over=board.is_game_over(claim_draw=True),
+        is_game_over=outcome is not None,
+        result=outcome.result() if outcome else None,
         last_move_san=last_move_san,
         last_move_uci=last_move_uci,
     )

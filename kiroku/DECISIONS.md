@@ -46,6 +46,14 @@ Decisione: Colori beige/marrone e SVG CBurnett, dock analisi con spazio compatto
 Motivazione: Preferenze e correzione YS-06 richieste dall'utente del 2026-10-06; il ricalcolo non deve muovere o ridimensionare la scacchiera.
 Conseguenze: Annotazioni col tasto destro non modificano la partita; frecce dei suggerimenti opzionali con preferenza locale salvata. Attribuzione e GPLv2+ dei pezzi incluse.
 
+### Decisione: Barra del vantaggio dal Bianco
+
+Stato: active
+Area: valutazione
+Decisione: Barra verticale Stockfish dal lato Bianco, con colori orientati alla scacchiera e scala visiva in pedoni, distinta da probabilità Maia/WDL.
+Motivazione: Richiesta dell'utente del 2026-10-06 di una barra come chess.com; il cambio di fonte o candidata non deve alterare il vantaggio della posizione.
+Conseguenze: Matto/patta derivano dal risultato python-chess; FEN e turno devono corrispondere all'analisi. Valore precedente attenuato e puntini durante il calcolo, dato assente esplicito; la geometria esterna resta stabile.
+
 ## Decisioni sostituite
 
 - PWA in un container Docker: sostituita dal desktop il 2026-10-06.

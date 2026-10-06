@@ -4,7 +4,14 @@ import chess
 import chess.engine
 import pytest
 
-from app.chess_service import ChessRuleError, StockfishService, apply_move, new_game, parse_board
+from app.chess_service import (
+    ChessRuleError,
+    StockfishService,
+    apply_move,
+    new_game,
+    parse_board,
+    position_state,
+)
 
 
 def test_new_game_exposes_twenty_legal_moves() -> None:
@@ -13,6 +20,31 @@ def test_new_game_exposes_twenty_legal_moves() -> None:
     assert state.turn == "white"
     assert len(state.legal_moves) == 20
     assert state.fen == chess.Board().fen()
+    assert state.result is None
+
+
+@pytest.mark.parametrize(
+    ("moves", "result"),
+    [
+        (["f2f3", "e7e5", "g2g4", "d8h4"], "0-1"),
+        (["e2e4", "e7e5", "f1c4", "b8c6", "d1h5", "g8f6", "h5f7"], "1-0"),
+        (["g1f3", "g8f6", "f3g1", "f6g8", "g1f3", "g8f6", "f3g1"], "1/2-1/2"),
+    ],
+)
+def test_position_exposes_terminal_result_with_full_history(moves, result) -> None:
+    board = chess.Board()
+    for move in moves:
+        board.push_uci(move)
+    state = position_state(board)
+    assert state.is_game_over
+    assert state.result == result
+    assert state.model_dump()["result"] == result
+
+
+def test_position_exposes_draw_for_insufficient_material() -> None:
+    state = position_state(chess.Board("8/8/8/8/8/8/4k3/6K1 w - - 0 1"))
+    assert state.is_game_over
+    assert state.result == "1/2-1/2"
 
 
 def test_apply_move_returns_normalized_position_and_san() -> None:

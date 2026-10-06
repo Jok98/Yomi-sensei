@@ -2,17 +2,22 @@
 
 ## In corso
 
-- Nessuna attività in corso; track concluso.
+- Nessuno; M-01/M-02/M-03/M-04 completati.
 
 ## TODO
 
-- Nessuna attività residua nel track.
+- Nessuno.
 
 ## Bloccato
 
 - Nessuno.
 
 ## Fatto
+
+### Attività: Verificare la barra del vantaggio
+
+Status: done
+Completion: Prospettiva e matto/patta verificati nei test; rotazione, caricamento, matto e layout stabile verificati in sorgenti/eseguibile 0.5.3. Passano 24 test TypeScript, 40 Python e due smoke con motori reali; nove sequenze ciascuno, variazione 0 px per scacchiera/barra.
 
 - YS-06 corretto nella build 0.5.2: caricamento realmente osservato, rettangoli invariati con variazione 0 px in nove sequenze sorgenti/pacchetto.
 - Commit e push della migrazione con Maia: 2bbae38.

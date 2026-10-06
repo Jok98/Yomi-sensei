@@ -456,11 +456,91 @@ small {
   min-width: 0;
   display: grid;
   place-items: center;
-  padding: 8px 24px;
+  padding: 8px 24px 8px 58px;
   container-type: size;
 }
 .board-frame {
   width: min(100%, calc(100cqh - 74px), 920px);
+}
+.board-surface {
+  position: relative;
+}
+.evaluation-bar {
+  position: absolute;
+  left: -34px;
+  top: 0;
+  bottom: 0;
+  width: 24px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #303030;
+  box-shadow: 0 2px 8px #0003;
+  font-variant-numeric: tabular-nums;
+}
+.evaluation-white {
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+  background: #efeee9;
+}
+.evaluation-bar[data-orientation='black'] .evaluation-white {
+  top: 0;
+  bottom: auto;
+}
+.evaluation-midpoint {
+  position: absolute;
+  top: 50%;
+  width: 100%;
+  border-top: 1px solid #8888;
+}
+.evaluation-value {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  padding: 3px 0;
+  text-align: center;
+  font-size: 9px;
+  font-weight: 600;
+}
+.evaluation-value.favors-white {
+  bottom: 0;
+  color: #292929;
+  background: #efeee9;
+}
+.evaluation-value.favors-black {
+  top: 0;
+  color: #efeee9;
+  background: #303030;
+}
+.evaluation-bar[data-orientation='black'] .evaluation-value.favors-white {
+  top: 0;
+  bottom: auto;
+}
+.evaluation-bar[data-orientation='black'] .evaluation-value.favors-black {
+  bottom: 0;
+  top: auto;
+}
+.evaluation-loading {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  transform: translateY(-50%);
+  text-align: center;
+  font-size: 15px;
+  color: #aaa;
+  background: #414141;
+}
+.evaluation-bar.updating .evaluation-value {
+  opacity: 0.7;
+}
+.evaluation-bar.unavailable {
+  opacity: 0.45;
+}
+.evaluation-bar:focus-visible {
+  outline: 2px solid var(--bright);
+  outline-offset: 2px;
 }
 .board-player {
   height: 34px;
@@ -1295,7 +1375,7 @@ small {
     --right-width: 285px;
   }
   .board-stage {
-    padding: 8px 14px;
+    padding: 8px 14px 8px 48px;
   }
   .move-label {
     max-width: 68px;
@@ -1376,7 +1456,7 @@ small {
     box-shadow: -12px 0 24px #0006;
   }
   .board-stage {
-    padding: 8px 14px;
+    padding: 8px 14px 8px 48px;
   }
   .local-indicator {
     display: none;
@@ -1397,7 +1477,7 @@ small {
     padding: 4px 6px;
   }
   .board-stage {
-    padding: 4px 12px;
+    padding: 4px 12px 4px 46px;
   }
   .board-frame {
     width: min(100%, calc(100cqh - 44px), 920px);

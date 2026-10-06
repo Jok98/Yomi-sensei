@@ -13,10 +13,10 @@
 ### board-workspace
 
 Status: closed
-Purpose: Scacchiera classica, analisi compatta stabile e frecce manuali/suggerite; YS-06 corretto.
+Purpose: Scacchiera classica, annotazioni, barra Stockfish e geometria stabile.
 Repos: Yomi-sensei
-Areas: frontend, dock, SVG e test di layout.
-Keywords: scacchiera, CBurnett, ricalcolo, altezza, frecce, YS-06.
+Areas: frontend, valutazione e layout.
+Keywords: barra vantaggio, Stockfish, Bianco, Nero, matto, frecce.
 Read: tracks/board-workspace/START_HERE.md
 
 ### maia-integration

@@ -2,6 +2,7 @@
 
 ## Aggiornamenti
 
+- 2026-10-06: M-04 concluso nella build 0.5.3: barra del vantaggio Stockfish dal Bianco, orientamento e risultati terminali. Passano 40 test Python, 24 TypeScript e smoke sorgenti/pacchetto; nove sequenze ciascuno mostrano variazione 0 px di scacchiera/barra. Start.cmd apre il pacchetto aggiornato; nessuna chiamata account.
 - 2026-10-06: YS-06 corretto nella build 0.5.2: la scacchiera resta ferma durante l'analisi. Dock compatto stabile, 18 test e smoke sorgenti/pacchetto passati; nove sequenze misurate con variazione 0 px.
 - 2026-10-06: scacchiera 0.5.1 pubblicata in 5abb82b; colori/SVG classici, analisi sotto il gioco e frecce manuali/suggerite. Track board-workspace chiuso; 18 test e smoke sorgenti/pacchetto superati. Avvio tramite Start.cmd in release/0.5.1/win-unpacked.
 

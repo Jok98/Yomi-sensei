@@ -17,6 +17,8 @@
 - `src/shared/`: contratti e operazioni pure su storico/orientamento.
 - `src/renderer/controller.ts`: store unico, mosse atomiche, generazioni di partita e analisi.
 - `src/renderer/components/`: scacchiera, controlli/storico, analisi, coach.
+- `src/shared/board-geometry.ts`: coordinate e geometria SVG indipendenti da dimensioni e orientamento.
+- `public/pieces/cburnett/`: SVG classici, provenienza e licenza, copiati da Vite nel renderer.
 - `app/chess_service.py`: legalità, stato derivato, processo UCI.
 - `app/maia_service.py`: worker posseduto, cache per storico/modello/rating, analisi e mosse Maia.
 - `app/maia_worker.py`: inferenza PyTorch e policy legale del codice upstream fissato in `vendor/maia3`.
@@ -29,12 +31,14 @@
 - L'annullamento considera chi ha giocato l'ultima semimossa.
 - Le risposte Codex appartengono alla posizione inviata; una nuova partita azzera la conversazione.
 - Shell neutra compatta ispirata a ComprehensionIDE; zoom nativo preservato.
+- Analisi in dock compatto sotto la scacchiera; coach laterale indipendente. Annotazioni non entrano nel controller o nel backend.
+- Solo la preferenza frecce suggerite persiste in localStorage; le annotazioni appartengono alla posizione corrente.
 - Backend stateless rispetto alla partita: lo storico UCI completo permette di rilevare ripetizioni (YS-01 corretto).
 - Probabilità di scelta umana, W/D/L Maia e qualità tattica Stockfish restano campi distinti.
 
 ## Distribuzione
 
 - Vite compila il renderer; esbuild compila main/preload Electron.
-- PyInstaller incorpora backend e worker Maia onedir; electron-builder include Stockfish, Maia e pesi locali in `release/maia/win-unpacked`.
+- PyInstaller incorpora backend e worker Maia onedir; electron-builder include Stockfish, Maia e pesi locali in `release/0.5.1/win-unpacked`.
 - `.runtime/`, `dist/`, `release/` e `artifacts/` sono output ignorati.
 - Docker e il precedente frontend PWA sono rimossi per richiesta dell'utente.

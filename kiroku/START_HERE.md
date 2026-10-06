@@ -10,15 +10,15 @@
 - Il desktop Electron/React/TypeScript è pronto su Windows, senza Docker.
 - Le mosse sono validate da python-chess; Maia-3 è l'avversario principale e Stockfish valuta la qualità tattica.
 - La chat usa `codex exec` con il login ChatGPT locale del Codex CLI.
-- Il frontend invia FEN iniziale, storico UCI e profilo umano; le analisi sono legate al contesto corrente.
 - Maia 79M predefinito, 5M selezionabile; rating Bianco/Nero separati e pesi locali.
-- 36 test Python e 14 TypeScript superati; smoke sorgenti e pacchetto Windows con Maia/Stockfish reali verificati.
+- 36 test Python dell'integrazione e 18 TypeScript superati; smoke scacchiera/workspace sorgenti e pacchetto passati.
+- Scacchiera beige/marrone con SVG classici; analisi sotto il gioco, frecce col destro e suggerimenti opzionali.
 - Issue in WORK.md: YS-01/02/03/04 corretti; consolidamento YS-05 ancora aperto.
-- Track conclusi: [Maia](tracks/maia-integration/START_HERE.md), [desktop](tracks/desktop-migration/START_HERE.md).
+- Track corrente: [scacchiera](tracks/board-workspace/START_HERE.md), 0.5.1 pronta alla pubblicazione; Maia e desktop conclusi.
 
 ## Prossima azione
 
-- Avviare Start.cmd per usare il pacchetto in release/maia/win-unpacked.
+- Pubblicare la versione 0.5.1; Start.cmd apre il pacchetto verificato in release/0.5.1/win-unpacked.
 - Il coach con account reale resta da provare nel nuovo desktop; i test non consumano chiamate modello.
 - Per il lavoro successivo, partire dal consolidamento residuo in WORK.md.
 

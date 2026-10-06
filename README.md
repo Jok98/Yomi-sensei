@@ -2,11 +2,11 @@
 
 App desktop locale per giocare e studiare gli scacchi con **Maia-3**, Stockfish e un coach Codex.
 Il frontend usa **Electron, React e TypeScript**, con la shell compatta di ComprehensionIDE
-come riferimento: scacchiera centrale, navigazione a sinistra, analisi e coach a destra.
+come riferimento: scacchiera centrale, navigazione a sinistra, analisi sotto il gioco e coach a destra.
 
 ## Avvio Windows
 
-Apri **Start.cmd**. Avvia il pacchetto corrente in `release/maia/win-unpacked/Yomi Sensei.exe`.
+Apri **Start.cmd**. Avvia il pacchetto corrente in `release/0.5.1/win-unpacked/Yomi Sensei.exe`.
 Questa cartella include Electron, backend Python, worker Maia, pesi 5M/79M e Stockfish: l'avvio
 non richiede Docker, Python, Node o pnpm installati. Conserva tutta la cartella,
 non soltanto il file `.exe`.
@@ -18,8 +18,17 @@ I motori e la scacchiera funzionano anche senza Codex. Non usa `OPENAI_API_KEY`.
 ## Workspace
 
 - **Partita / Registro**, sulla barra sinistra: modalità, avversario, rating e mosse classificate.
-- **Scacchiera** centrale: click o trascinamento, arrocco, en passant e selezione della promozione.
-- **Analisi / Coach**, sulla barra destra: **Maia · umana**, **Stockfish · tattica** e chat.
+- **Scacchiera** centrale: colori classici beige/marrone e pezzi SVG CBurnett; click o trascinamento,
+  arrocco, en passant e selezione della promozione.
+- **Analisi** sotto la scacchiera: candidate e risposte in schede compatte, con fonti
+  **Maia · umana** e **Stockfish · tattica**. Il pannello segue il contenuto, ha un limite di altezza
+  e si riduce con il tab o la freccia a destra. La barra destra apre indipendentemente il **Coach**.
+- Trascina col **tasto destro** tra due caselle per disegnare una freccia arancione; un click destro
+  disegna un cerchio. Ripeti per togliere una singola annotazione. Click sinistro o **Esc** le cancella.
+  Sono annotazioni di studio: non eseguono mosse e si azzerano quando cambia la posizione.
+- Attiva **Frecce suggerite** nel pannello o nelle impostazioni per mostrare le tre candidate della
+  fonte selezionata. I numeri corrispondono alle schede; la candidata selezionata è più evidente.
+  La preferenza resta salvata nel profilo locale dell'app.
 - Maia-3 è l'avversario predefinito in modalità Computer; puoi scegliere anche Stockfish.
 - Il profilo umano imposta separatamente rating Bianco e Nero, con riferimento Lichess blitz.
 - **Accurato · 79M** è il modello Maia predefinito; **Rapido · 5M** riduce il tempo di calcolo.
@@ -33,10 +42,11 @@ I motori e la scacchiera funzionano anche senza Codex. Non usa `OPENAI_API_KEY`.
 | Ctrl+N | Nuova partita |
 | Ctrl+Z | Annulla mossa |
 | Ctrl+B | Mostra/nasconde pannello partita |
-| Ctrl+Alt+B | Mostra/nasconde pannello destro |
+| Ctrl+Alt+B | Mostra/nasconde coach |
 | Ctrl+F | Ruota scacchiera in modalità Libera |
 | Ctrl+Shift+R | Ricalcola analisi |
-| Ctrl+, | Servizi locali |
+| Ctrl+, | Impostazioni e servizi locali |
+| Esc | Cancella annotazioni / chiude dialoghi |
 
 Nel pannello **Maia** la percentuale è la probabilità stimata che un umano al rating
 selezionato giochi quella mossa. Le candidate non esauriscono tutte le mosse e le
@@ -108,9 +118,10 @@ pnpm package:dir
 ```
 
 PyInstaller crea backend e worker Maia standalone; electron-builder assembla
-`release/maia/win-unpacked/`. Il worker è una cartella onedir distinta dal backend
-leggero. La build conserva i sorgenti e le licenze dei motori. La build precedente
-può restare in `release/win-unpacked`; `Start.cmd` preferisce il pacchetto Maia.
+`release/0.5.1/win-unpacked/`. Il worker è una cartella onedir distinta dal backend
+leggero. La build conserva i sorgenti e le licenze dei motori e dei pezzi SVG.
+Le build precedenti possono restare in `release/maia/` e `release/win-unpacked`;
+`Start.cmd` preferisce la versione 0.5.1. Un'app già aperta va chiusa e riavviata per vedere gli aggiornamenti.
 Il pacchetto locale non è firmato. Build e runtime di Linux/macOS non sono validati.
 
 ## Architettura
@@ -124,6 +135,7 @@ Il pacchetto locale non è firmato. Build e runtime di Linux/macOS non sono vali
 - `app/maia_worker.py`: inferenza e campionamento Maia in runtime PyTorch separato.
 - `app/llm_service.py`: coach con contesto tattico e umano distinto.
 - `vendor/maia3/`: codice ufficiale fissato, provenienza e licenza.
+- `public/pieces/cburnett/`: dodici pezzi SVG di Colin M. L. Burnett, licenza GPLv2+ e provenienza.
 
 Il renderer usa un bridge IPC con elenco chiuso di endpoint. Il backend ascolta su
 `127.0.0.1` e porta assegnata dal sistema, con token effimero mantenuto nel processo
@@ -142,13 +154,19 @@ pnpm format:check
 pnpm smoke:desktop
 ```
 
+`pnpm smoke:board` esegue le verifiche di scacchiera/workspace con Maia 79M e Stockfish reali,
+senza ripetere l'intera suite delle mosse speciali e dei profili. Anche questa suite non usa account.
+`YOMI_SMOKE_ARTIFACT_DIR` sceglie la cartella dei rapporti, ad esempio `artifacts/source` o `artifacts/packaged`.
+
 Lo smoke usa un profilo desktop isolato, Maia 5M/79M e Stockfish reali, con il CLI Codex
 esplicitamente non disponibile. Verifica mosse normali/speciali, trascinamento,
 annullamento, ripetizioni, avversari, rating, pannelli e chat senza account.
+Verifica anche annotazioni col mouse, rotazione, frecce suggerite, preferenza persistente,
+dimensionamento del dock e asset SVG locali.
 Non consuma chiamate al coach. Per provare il pacchetto invece dei sorgenti:
 
 ```powershell
-$env:YOMI_TEST_EXECUTABLE = (Resolve-Path 'release\maia\win-unpacked\Yomi Sensei.exe').Path
+$env:YOMI_TEST_EXECUTABLE = (Resolve-Path 'release\0.5.1\win-unpacked\Yomi Sensei.exe').Path
 pnpm smoke:desktop
 ```
 
@@ -162,7 +180,8 @@ non il tempo totale che comprende Stockfish e il rendering.
 
 ## Memoria e lavoro residuo
 
-Leggi [Kiroku](kiroku/START_HERE.md) e il [track Maia](kiroku/tracks/maia-integration/START_HERE.md).
+Leggi [Kiroku](kiroku/START_HERE.md), il [track scacchiera](kiroku/tracks/board-workspace/START_HERE.md)
+e il [track Maia](kiroku/tracks/maia-integration/START_HERE.md).
 Gli issue dell'analisi restano identificati nel [backlog](kiroku/WORK.md).
 YS-01 è corretto tramite lo storico completo: triplice/quintupla ripetizione sono
 rilevate. La partita termina automaticamente quando la patta per triplice ripetizione

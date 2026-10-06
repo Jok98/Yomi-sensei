@@ -13,10 +13,12 @@ function CandidateRow({
 }) {
   const body = (
     <>
-      <span className="candidate-rank">{candidate.rank}</span>
+      <span className={`candidate-rank rank-${candidate.rank}`}>{candidate.rank}</span>
       <span className="candidate-copy">
         <strong>{candidate.san}</strong>
-        <span className="variation">{candidate.principal_variation.join(' ')}</span>
+        <span className="variation" title={candidate.principal_variation.join(' ')}>
+          {candidate.principal_variation.join(' ')}
+        </span>
       </span>
       <span className="candidate-score">
         <strong>{candidate.evaluation}</strong>
@@ -29,6 +31,7 @@ function CandidateRow({
     <button
       className={`candidate-row ${active ? 'active' : ''}`}
       aria-pressed={!!active}
+      data-candidate-uci={candidate.uci}
       title={title}
       onClick={onSelect}
     >
@@ -40,22 +43,30 @@ function CandidateRow({
     </div>
   );
 }
-function SourceSwitcher({ game, controller }: { game: GameState; controller: GameController }) {
+export function AnalysisSourceSwitcher({
+  game,
+  controller,
+}: {
+  game: GameState;
+  controller: GameController;
+}) {
   return (
     <div className="segmented analysis-switcher" role="group" aria-label="Fonte analisi">
       <button
+        aria-label="Maia · umana"
         aria-pressed={game.analysisSource === 'human'}
         className={game.analysisSource === 'human' ? 'active' : ''}
         onClick={() => controller.setAnalysisSource('human')}
       >
-        Maia · umana
+        Maia <span className="source-kind">· umana</span>
       </button>
       <button
+        aria-label="Stockfish · tattica"
         aria-pressed={game.analysisSource === 'stockfish'}
         className={game.analysisSource === 'stockfish' ? 'active' : ''}
         onClick={() => controller.setAnalysisSource('stockfish')}
       >
-        Stockfish · tattica
+        Stockfish <span className="source-kind">· tattica</span>
       </button>
     </div>
   );
@@ -71,10 +82,17 @@ function HumanRow({
 }) {
   const body = (
     <>
-      <span className="candidate-rank">{candidate.rank}</span>
+      <span className={`candidate-rank rank-${candidate.rank}`}>{candidate.rank}</span>
       <span className="candidate-copy">
         <strong>{candidate.san}</strong>
-        <span className="variation">
+        <span
+          className="variation"
+          title={
+            candidate.stockfish
+              ? `Valutazione Stockfish ${candidate.stockfish.evaluation}`
+              : 'Previsione Maia-3'
+          }
+        >
           {candidate.stockfish
             ? `Stockfish ${candidate.stockfish.evaluation}`
             : 'Previsione Maia-3'}
@@ -91,6 +109,7 @@ function HumanRow({
     <button
       className={`candidate-row human-candidate ${active ? 'active' : ''}`}
       aria-pressed={!!active}
+      data-candidate-uci={candidate.uci}
       title={title}
       onClick={onSelect}
     >
@@ -110,7 +129,6 @@ function HumanPanel({ game, controller }: { game: GameState; controller: GameCon
     game.position?.turn === 'black' ? game.maiaProfile.black_elo : game.maiaProfile.white_elo;
   return (
     <div className="analysis-content">
-      <SourceSwitcher game={game} controller={controller} />
       <div className="analysis-summary">
         <span className={`turn-dot ${game.position?.turn}`} />
         <strong>{game.position?.turn === 'black' ? 'Nero' : 'Bianco'} al tratto</strong>
@@ -143,40 +161,53 @@ function HumanPanel({ game, controller }: { game: GameState; controller: GameCon
         </div>
       ) : (
         <>
-          <div className="section-label">Scelte umane probabili</div>
-          <div data-testid="human-analysis">
-            {human?.candidates.map((candidate) => (
-              <HumanRow
-                key={candidate.uci}
-                candidate={candidate}
-                active={candidate.uci === game.activeCandidate}
-                onSelect={() => controller.selectCandidate(candidate.uci)}
-              />
-            ))}
-          </div>
-          {!human &&
-            !game.analysisPending &&
-            !game.busy &&
-            !analysis?.human_error &&
-            !game.analysisError && <div className="empty-state">Analisi umana non disponibile</div>}
-          {game.mode === 'free' && (
-            <section className="opponent-section" data-testid="opponent-analysis">
+          <div className="analysis-columns">
+            <section className="recommendations">
               <div className="section-label">
-                Risposte umane probabili {reply && <span>dopo {reply.after_san}</span>}
+                Scelte umane probabili <span>Maia-3</span>
               </div>
-              {reply?.candidates.map((candidate) => (
-                <HumanRow key={candidate.uci} candidate={candidate} />
-              ))}
-              {reply && !reply.candidates.length && (
-                <p className="muted small">La variante termina la partita.</p>
-              )}
-              {!reply && <p className="muted small">Seleziona una candidata dopo l’analisi.</p>}
+              <div className="candidate-list" data-testid="human-analysis">
+                {human?.candidates.map((candidate) => (
+                  <HumanRow
+                    key={candidate.uci}
+                    candidate={candidate}
+                    active={candidate.uci === game.activeCandidate}
+                    onSelect={() => controller.selectCandidate(candidate.uci)}
+                  />
+                ))}
+              </div>
+              {!human &&
+                !game.analysisPending &&
+                !game.busy &&
+                !analysis?.human_error &&
+                !game.analysisError && (
+                  <div className="empty-state">Analisi umana non disponibile</div>
+                )}
             </section>
-          )}
-          <p className="metric-note">
-            Maia stima la probabilità che un umano al rating scelto giochi la mossa. Stockfish ne
-            valuta la qualità tattica. I W/D/L Maia nel tooltip sono previsioni di esito separate.
-          </p>
+            {game.mode === 'free' && (
+              <section className="opponent-section" data-testid="opponent-analysis">
+                <div className="section-label">
+                  Risposte umane probabili {reply && <span>dopo {reply.after_san}</span>}
+                </div>
+                <div className="candidate-list">
+                  {reply?.candidates.map((candidate) => (
+                    <HumanRow key={candidate.uci} candidate={candidate} />
+                  ))}
+                </div>
+                {reply && !reply.candidates.length && (
+                  <p className="muted small">La variante termina la partita.</p>
+                )}
+                {!reply && <p className="muted small">Seleziona una candidata dopo l’analisi.</p>}
+              </section>
+            )}
+          </div>
+          <details className="metric-note">
+            <summary>Come leggere l’analisi</summary>
+            <p>
+              Maia stima la probabilità che un umano al rating scelto giochi la mossa. Stockfish ne
+              valuta la qualità tattica. I W/D/L Maia nel tooltip sono previsioni di esito separate.
+            </p>
+          </details>
         </>
       )}
     </div>
@@ -194,7 +225,6 @@ export function AnalysisPanel({
   const reply = analysis?.replies.find((item) => item.after_uci === game.activeCandidate);
   return (
     <div className="analysis-content">
-      <SourceSwitcher game={game} controller={controller} />
       <div className="analysis-summary">
         <span className={`turn-dot ${game.position?.turn}`} />
         <strong>{game.position?.turn === 'black' ? 'Nero' : 'Bianco'} al tratto</strong>
@@ -228,36 +258,51 @@ export function AnalysisPanel({
         </div>
       ) : (
         <>
-          <div className="section-label">Mosse candidate</div>
-          {analysis?.candidates.map((candidate) => (
-            <CandidateRow
-              key={candidate.uci}
-              candidate={candidate}
-              active={candidate.uci === game.activeCandidate}
-              onSelect={() => controller.selectCandidate(candidate.uci)}
-            />
-          ))}
-          {!analysis && !game.analysisPending && !game.busy && !game.analysisError && (
-            <div className="empty-state">Analisi non disponibile</div>
-          )}
-          {game.mode === 'free' && (
-            <section className="opponent-section" data-testid="opponent-analysis">
+          <div className="analysis-columns">
+            <section className="recommendations">
               <div className="section-label">
-                Risposte avversarie {reply && <span>dopo {reply.after_san}</span>}
+                Mosse consigliate <span>Stockfish</span>
               </div>
-              {reply?.candidates.map((candidate) => (
-                <CandidateRow key={candidate.uci} candidate={candidate} />
-              ))}
-              {reply && !reply.candidates.length && (
-                <p className="muted small">La variante termina la partita.</p>
+              <div className="candidate-list">
+                {analysis?.candidates.map((candidate) => (
+                  <CandidateRow
+                    key={candidate.uci}
+                    candidate={candidate}
+                    active={candidate.uci === game.activeCandidate}
+                    onSelect={() => controller.selectCandidate(candidate.uci)}
+                  />
+                ))}
+              </div>
+              {!analysis && !game.analysisPending && !game.busy && !game.analysisError && (
+                <div className="empty-state">Analisi non disponibile</div>
               )}
-              {!reply && <p className="muted small">Disponibili dopo l’analisi delle candidate.</p>}
             </section>
-          )}
-          <p className="metric-note">
-            Le percentuali indicano l’esito atteso: vittoria + metà delle patte. La valutazione è
-            dal lato al tratto.
-          </p>
+            {game.mode === 'free' && (
+              <section className="opponent-section" data-testid="opponent-analysis">
+                <div className="section-label">
+                  Risposte avversarie {reply && <span>dopo {reply.after_san}</span>}
+                </div>
+                <div className="candidate-list">
+                  {reply?.candidates.map((candidate) => (
+                    <CandidateRow key={candidate.uci} candidate={candidate} />
+                  ))}
+                </div>
+                {reply && !reply.candidates.length && (
+                  <p className="muted small">La variante termina la partita.</p>
+                )}
+                {!reply && (
+                  <p className="muted small">Disponibili dopo l’analisi delle candidate.</p>
+                )}
+              </section>
+            )}
+          </div>
+          <details className="metric-note">
+            <summary>Come leggere l’analisi</summary>
+            <p>
+              Le percentuali indicano l’esito atteso: vittoria + metà delle patte. La valutazione è
+              dal lato al tratto.
+            </p>
+          </details>
         </>
       )}
     </div>

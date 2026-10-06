@@ -13,6 +13,8 @@ const paths = {
   close: ['m6 6 12 12M18 6 6 18'],
   refresh: ['M20 7v5h-5', 'M20 12a8 8 0 1 0-2 5'],
   arrow: ['M12 20V4m-6 6 6-6 6 6'],
+  'chevron-down': ['m6 9 6 6 6-6'],
+  'chevron-up': ['m6 15 6-6 6 6'],
   panel: ['M3 4h18v16H3Z', 'M9 4v16'],
   check: ['m5 12 4 4L19 6'],
   book: ['M3 4h6l3 2 3-2h6v15h-6l-3 2-3-2H3Z', 'M12 6v15'],

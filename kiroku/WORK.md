@@ -2,7 +2,7 @@
 
 ## In corso
 
-- Nessuna attività in corso; integrazione Maia completata nel track maia-integration.
+- Scacchiera classica, analisi sotto il gioco e frecce nel track board-workspace.
 
 ## TODO
 

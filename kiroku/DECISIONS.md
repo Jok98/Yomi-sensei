@@ -38,6 +38,14 @@ Decisione: Invocazioni `codex exec` effimere, sandbox read-only, modello opziona
 Motivazione: Conservare l'integrazione richiesta senza API key o un loop modello alternativo.
 Conseguenze: Credenziali fuori da renderer e pacchetti; latenza del processo per messaggio ancora da misurare nel desktop.
 
+### Decisione: Scacchiera classica e analisi sotto il gioco
+
+Stato: active
+Area: interfaccia
+Decisione: Colori beige/marrone e SVG CBurnett, dock analisi compatto sotto la scacchiera, coach indipendente a destra.
+Motivazione: Preferenze esplicite dell'utente del 2026-10-06; spazio prioritario al gioco.
+Conseguenze: Annotazioni col tasto destro non modificano la partita; frecce dei suggerimenti opzionali con preferenza locale salvata. Attribuzione e GPLv2+ dei pezzi incluse.
+
 ## Decisioni sostituite
 
 - PWA in un container Docker: sostituita dal desktop il 2026-10-06.

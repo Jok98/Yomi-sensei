@@ -4,7 +4,7 @@ import { GameController } from './controller';
 import { Icon, type IconName } from './Icon';
 import { Board } from './components/Board';
 import { GamePanel } from './components/GamePanel';
-import { AnalysisPanel } from './components/AnalysisPanel';
+import { AnalysisPanel, AnalysisSourceSwitcher } from './components/AnalysisPanel';
 import { CoachPanel } from './components/CoachPanel';
 
 function ToolButton({
@@ -33,7 +33,22 @@ function ToolButton({
 export function App({ controller }: { controller: GameController }) {
   const game = useSyncExternalStore(controller.subscribe, controller.getSnapshot);
   const [left, setLeft] = useState<'game' | 'history' | null>('game');
-  const [right, setRight] = useState<'analysis' | 'coach' | null>('analysis');
+  const [right, setRight] = useState<'coach' | null>(null);
+  const [analysisOpen, setAnalysisOpen] = useState(true);
+  const [suggestedArrows, setSuggestedArrows] = useState(() => {
+    try {
+      return localStorage.getItem('yomi.suggestedArrows') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem('yomi.suggestedArrows', String(suggestedArrows));
+    } catch {
+      /* Keep the current preference when profile storage is unavailable. */
+    }
+  }, [suggestedArrows]);
   const [orientation, setOrientation] = useState<Color>('white');
   const [settings, setSettings] = useState(false);
   useEffect(() => {
@@ -70,7 +85,7 @@ export function App({ controller }: { controller: GameController }) {
             setLeft((value) => (value ? null : 'game'));
             break;
           case 'toggle-right':
-            setRight((value) => (value ? null : 'analysis'));
+            setRight((value) => (value ? null : 'coach'));
             break;
           case 'settings':
             setSettings(true);
@@ -199,32 +214,93 @@ export function App({ controller }: { controller: GameController }) {
                 : `${Math.floor(game.moves.length / 2) + 1}. ${game.position?.turn === 'black' ? 'Nero' : 'Bianco'} al tratto`}
             </span>
           </div>
-          <Board game={game} controller={controller} orientation={orientation} />
+          <Board
+            game={game}
+            controller={controller}
+            orientation={orientation}
+            suggestedArrows={suggestedArrows}
+          />
           <div className="board-footer">
             <span>
               {game.moves.at(-1)
                 ? `Ultima mossa · ${game.moves.at(-1)!.san}`
                 : 'Posizione iniziale'}
             </span>
-            <span>{game.mode === 'computer' ? 'Tu: Bianco' : 'Entrambi i colori'}</span>
+            <span
+              className="annotation-hint"
+              title="Ripeti una freccia per toglierla; click sinistro o Escape per cancellare."
+            >
+              Tasto destro · disegna frecce
+            </span>
           </div>
+          <section
+            className={`analysis-dock ${analysisOpen ? '' : 'collapsed'}`}
+            aria-label="Analisi sotto la scacchiera"
+          >
+            <div className="analysis-toolbar">
+              <div className="panel-tabs" role="tablist" aria-label="Studio della posizione">
+                <button
+                  id="analysis-tab"
+                  role="tab"
+                  aria-controls="analysis-page"
+                  aria-selected={analysisOpen}
+                  aria-expanded={analysisOpen}
+                  className={analysisOpen ? 'active' : ''}
+                  onClick={() => setAnalysisOpen((value) => !value)}
+                >
+                  <Icon name="chart" size={14} /> Analisi
+                </button>
+              </div>
+              {analysisOpen && <AnalysisSourceSwitcher game={game} controller={controller} />}
+              <div className="pane-actions">
+                <label
+                  className="arrow-setting"
+                  title="Frecce suggerite: mostra le tre mosse della fonte selezionata. I numeri corrispondono alle candidate."
+                >
+                  <input
+                    type="checkbox"
+                    aria-label="Frecce suggerite"
+                    checked={suggestedArrows}
+                    onChange={(event) => setSuggestedArrows(event.target.checked)}
+                  />
+                  <Icon name="arrow" size={14} />
+                  <span className="arrow-setting-label">Frecce suggerite</span>
+                </label>
+                <button
+                  className="icon-button"
+                  aria-label="Ricalcola analisi"
+                  title="Ricalcola · Ctrl+Shift+R"
+                  disabled={!!game.busy || game.analysisPending}
+                  onClick={() => void controller.analyze()}
+                >
+                  <Icon name="refresh" size={15} />
+                </button>
+                <button
+                  className="icon-button"
+                  aria-label={analysisOpen ? 'Riduci analisi' : 'Espandi analisi'}
+                  title={analysisOpen ? 'Riduci analisi' : 'Espandi analisi'}
+                  onClick={() => setAnalysisOpen((value) => !value)}
+                >
+                  <Icon name={analysisOpen ? 'chevron-down' : 'chevron-up'} size={15} />
+                </button>
+              </div>
+            </div>
+            <div
+              id="analysis-page"
+              className="analysis-body"
+              role="tabpanel"
+              aria-labelledby="analysis-tab"
+              hidden={!analysisOpen}
+            >
+              <AnalysisPanel game={game} controller={controller} />
+            </div>
+          </section>
         </section>
         {right && (
           <aside className="inspector">
             <div className="pane-title">
-              <h2>{right === 'analysis' ? 'Analisi posizione' : 'Coach'}</h2>
+              <h2>Coach</h2>
               <div className="pane-actions">
-                {right === 'analysis' && (
-                  <button
-                    className="icon-button"
-                    aria-label="Ricalcola analisi"
-                    title="Ricalcola · Ctrl+Shift+R"
-                    disabled={!!game.busy || game.analysisPending}
-                    onClick={() => void controller.analyze()}
-                  >
-                    <Icon name="refresh" size={15} />
-                  </button>
-                )}
                 <button
                   className="icon-button"
                   aria-label="Nascondi pannello destro"
@@ -234,28 +310,7 @@ export function App({ controller }: { controller: GameController }) {
                 </button>
               </div>
             </div>
-            <div className="panel-tabs" role="tablist" aria-label="Pannello destro">
-              <button
-                role="tab"
-                aria-selected={right === 'analysis'}
-                className={right === 'analysis' ? 'active' : ''}
-                onClick={() => setRight('analysis')}
-              >
-                Analisi
-              </button>
-              <button
-                role="tab"
-                aria-selected={right === 'coach'}
-                className={right === 'coach' ? 'active' : ''}
-                onClick={() => setRight('coach')}
-              >
-                Coach {game.chatBusy && <span className="status-dot" />}
-              </button>
-            </div>
-            <div className="panel-page" hidden={right !== 'analysis'}>
-              <AnalysisPanel game={game} controller={controller} />
-            </div>
-            <div className="panel-page" hidden={right !== 'coach'}>
+            <div className="panel-page">
               <CoachPanel game={game} controller={controller} />
             </div>
           </aside>
@@ -264,8 +319,8 @@ export function App({ controller }: { controller: GameController }) {
           <ToolButton
             label="Mostra analisi"
             icon="chart"
-            active={right === 'analysis'}
-            onClick={() => setRight(right === 'analysis' ? null : 'analysis')}
+            active={analysisOpen}
+            onClick={() => setAnalysisOpen((value) => !value)}
           />
           <ToolButton
             label="Mostra coach"
@@ -313,7 +368,7 @@ export function App({ controller }: { controller: GameController }) {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="pane-title">
-              <h2 id="settings-title">Servizi locali</h2>
+              <h2 id="settings-title">Impostazioni</h2>
               <button
                 autoFocus
                 className="icon-button"
@@ -324,6 +379,14 @@ export function App({ controller }: { controller: GameController }) {
               </button>
             </div>
             <div className="settings-body">
+              <label className="arrow-setting settings-arrow-setting">
+                <input
+                  type="checkbox"
+                  checked={suggestedArrows}
+                  onChange={(event) => setSuggestedArrows(event.target.checked)}
+                />
+                Mostra frecce dei suggerimenti sulla scacchiera
+              </label>
               <div className="service-row">
                 <strong>Maia-3</strong>
                 <span>{game.health?.maia ? 'Disponibile' : 'Non disponibile'}</span>

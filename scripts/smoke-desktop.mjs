@@ -5,7 +5,8 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 
 const profile = await mkdtemp(path.join(tmpdir(), 'yomi-smoke-'));
-await mkdir('artifacts', { recursive: true });
+const artifactDirectory = process.env.YOMI_SMOKE_ARTIFACT_DIR || 'artifacts';
+await mkdir(artifactDirectory, { recursive: true });
 const env = {
   ...process.env,
   YOMI_SMOKE: '1',
@@ -23,6 +24,7 @@ const desktop = await electron.launch({
 });
 const errors = [];
 const results = [];
+const boardOnly = process.argv.includes('--board-only');
 async function capture(file) {
   const data = await desktop.evaluate(async ({ BrowserWindow }) => {
     const contents = BrowserWindow.getAllWindows()[0].webContents;
@@ -30,7 +32,7 @@ async function capture(file) {
     await contents.capturePage(undefined, options);
     return (await contents.capturePage(undefined, options)).toPNG().toString('base64');
   });
-  await writeFile(file, Buffer.from(data, 'base64'));
+  await writeFile(path.join(artifactDirectory, path.basename(file)), Buffer.from(data, 'base64'));
 }
 try {
   const page = await desktop.firstWindow();
@@ -47,7 +49,87 @@ try {
   };
   await ready();
   console.log('Desktop ready');
+  const rightDraw = async (from, to) => {
+    const start = await page.locator(`[data-square="${from}"]`).boundingBox();
+    const end = await page.locator(`[data-square="${to}"]`).boundingBox();
+    assert.ok(start && end);
+    await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2);
+    await page.mouse.down({ button: 'right' });
+    await page.mouse.move(end.x + end.width / 2, end.y + end.height / 2, { steps: 8 });
+    await page.mouse.up({ button: 'right' });
+  };
   assert.equal(await page.locator('[role="gridcell"]').count(), 64);
+  assert.equal(await page.locator('.chessboard .piece-image').count(), 32);
+  assert.equal(await page.locator('.inspector').count(), 0);
+  assert.equal(await page.locator('.suggested-arrow').count(), 0);
+  assert.equal(
+    await page.evaluate(() =>
+      [...document.querySelectorAll('.piece-image')].every(
+        (image) => image.complete && image.naturalWidth > 0,
+      ),
+    ),
+    true,
+  );
+  const layout = await page.evaluate(() => {
+    const board = document.querySelector('.chessboard').getBoundingClientRect();
+    const dock = document.querySelector('.analysis-dock').getBoundingClientRect();
+    return {
+      boardBottom: board.bottom,
+      boardWidth: board.width,
+      dockTop: dock.top,
+      dockHeight: dock.height,
+      height: innerHeight,
+    };
+  });
+  assert.ok(layout.dockTop > layout.boardBottom);
+  assert.ok(layout.dockHeight < layout.height * 0.4);
+  assert.ok(layout.boardWidth > 450);
+  await rightDraw('e2', 'e4');
+  await rightDraw('g1', 'f3');
+  assert.equal(await page.locator('.manual-arrow').count(), 2);
+  assert.equal(await page.locator('[data-testid="move-row"]').count(), 0);
+  assert.equal(
+    await page.locator('.manual-arrow[data-from="g1"] path').getAttribute('d'),
+    'M 650 750 L 650 550 L 581 550',
+  );
+  await page.getByRole('button', { name: 'Ruota scacchiera', exact: true }).click();
+  assert.equal(
+    await page.locator('.manual-arrow[data-from="e2"] path').getAttribute('d'),
+    'M 350 150 L 350 319',
+  );
+  await rightDraw('e2', 'e4');
+  assert.equal(await page.locator('.manual-arrow').count(), 1);
+  await rightDraw('e4', 'e4');
+  assert.equal(await page.locator('.manual-circle').count(), 1);
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('.manual-mark').count(), 0);
+  await page.getByRole('button', { name: 'Ruota scacchiera', exact: true }).click();
+  const arrows = page.getByRole('checkbox', { name: 'Frecce suggerite', exact: true });
+  await arrows.check();
+  assert.equal(await page.locator('.suggested-arrow').count(), 3);
+  const candidate = page.locator('[data-testid="human-analysis"] .candidate-row').nth(1);
+  const candidateUci = await candidate.getAttribute('data-candidate-uci');
+  await candidate.click();
+  assert.equal(
+    await page.locator('.suggested-arrow.active').getAttribute('data-from'),
+    candidateUci.slice(0, 2),
+  );
+  assert.equal(
+    await page.locator('.suggested-arrow.active').getAttribute('data-to'),
+    candidateUci.slice(2, 4),
+  );
+  await rightDraw('d2', 'd4');
+  await capture('artifacts/desktop-arrows.png');
+  await page.reload();
+  await ready();
+  assert.equal(await arrows.isChecked(), true);
+  assert.equal(await page.locator('.suggested-arrow').count(), 3);
+  assert.equal(await page.locator('.manual-mark').count(), 0);
+  await arrows.uncheck();
+  assert.equal(await page.locator('.suggested-arrow').count(), 0);
+  results.push(
+    'Classic local SVG pieces, compact analysis below board, right-drag arrows/circles, rotation, candidate arrows and persisted preference',
+  );
   assert.equal(await page.locator('.candidate-row.active').count(), 1);
   assert.equal(await page.locator('[data-testid="opponent-analysis"] .candidate-row').count(), 3);
   assert.equal(await page.locator('[data-testid="human-analysis"] .human-candidate').count(), 3);
@@ -56,10 +138,46 @@ try {
   results.push('Startup, real Maia-3 79M policy and Stockfish evaluations, visible human replies');
   await capture('artifacts/desktop-maia.png');
   await page.getByRole('button', { name: 'Stockfish · tattica', exact: true }).click();
+  await arrows.check();
+  assert.equal(await page.locator('.suggested-arrow').count(), 3);
+  const tacticalMoves = await page
+    .locator('.recommendations [data-candidate-uci]')
+    .evaluateAll((elements) =>
+      elements.map((element) => element.getAttribute('data-candidate-uci')),
+    );
+  const tacticalArrows = await page
+    .locator('.suggested-arrow')
+    .evaluateAll((elements) =>
+      elements.map(
+        (element) => element.getAttribute('data-from') + element.getAttribute('data-to'),
+      ),
+    );
+  assert.deepEqual(
+    tacticalArrows,
+    tacticalMoves.map((uci) => uci.slice(0, 4)),
+  );
   assert.equal(await page.locator('.candidate-row.active').count(), 1);
   assert.equal(await page.locator('[data-testid="opponent-analysis"] .candidate-row').count(), 3);
   await capture('artifacts/desktop-stockfish.png');
   await page.getByRole('button', { name: 'Maia · umana', exact: true }).click();
+  const humanMoves = await page
+    .locator('[data-testid="human-analysis"] [data-candidate-uci]')
+    .evaluateAll((elements) =>
+      elements.map((element) => element.getAttribute('data-candidate-uci')),
+    );
+  const humanArrows = await page
+    .locator('.suggested-arrow')
+    .evaluateAll((elements) =>
+      elements.map(
+        (element) => element.getAttribute('data-from') + element.getAttribute('data-to'),
+      ),
+    );
+  assert.deepEqual(
+    humanArrows,
+    humanMoves.map((uci) => uci.slice(0, 4)),
+  );
+  await arrows.uncheck();
+  results.push('Suggested arrows follow the selected Maia or Stockfish source');
   const move = async (uci) => {
     await page.locator(`[data-square="${uci.slice(0, 2)}"]`).click();
     await page.locator(`[data-square="${uci.slice(2, 4)}"]`).click();
@@ -86,63 +204,71 @@ try {
   assert.match(await page.locator('.move-list').innerText(), /e4/);
   results.push('Click move, undo and drag-and-drop');
   console.log(results.at(-1));
+  if (!boardOnly) {
+    await reset();
+    for (const uci of ['e2e4', 'e7e5', 'g1f3', 'b8c6', 'f1c4', 'g8f6', 'e1g1']) await move(uci);
+    assert.match(await page.locator('.move-list').innerText(), /O-O/);
+    results.push('Castling through the desktop');
+    console.log(results.at(-1));
+    await reset();
+    for (const uci of ['e2e4', 'a7a6', 'e4e5', 'd7d5', 'e5d6']) await move(uci);
+    assert.equal(await page.locator('[data-square="d5"] .piece').count(), 0);
+    results.push('En passant through the desktop');
+    console.log(results.at(-1));
+    await reset();
+    for (const uci of ['a2a4', 'h7h5', 'a4a5', 'h5h4', 'a5a6', 'h4h3', 'a6b7', 'h3g2', 'b7a8n'])
+      await move(uci);
+    assert.match(
+      await page.locator('[data-square="a8"]').getAttribute('aria-label'),
+      /cavallo bianco/,
+    );
+    results.push('Underpromotion selection');
+    console.log(results.at(-1));
+    await reset();
+    for (const uci of ['g1f3', 'g8f6', 'f3g1', 'f6g8', 'g1f3', 'g8f6', 'f3g1']) await move(uci);
+    assert.match(await page.locator('.position-status').innerText(), /triplice ripetizione/);
+    assert.equal(await page.locator('[data-square="f6"]').isEnabled(), false);
+    const terminalDockHeight = (await page.locator('.analysis-dock').boundingBox()).height;
+    assert.ok(terminalDockHeight < layout.dockHeight);
+    await rightDraw('f6', 'g8');
+    assert.equal(await page.locator('.manual-arrow').count(), 1);
+    await page.keyboard.press('Escape');
+    results.push('Threefold repetition from complete move history');
+    await page.getByRole('button', { name: 'Computer', exact: true }).click();
+    await ready();
+    assert.equal(
+      await page.getByRole('combobox', { name: 'Avversario', exact: true }).inputValue(),
+      'maia',
+    );
+    await move('e2e4');
+    assert.equal(await page.locator('[data-testid="move-row"]').count(), 2);
+    assert.match(await page.locator('[data-testid="move-row"]').last().innerText(), /Maia-3/);
+    assert.equal(await page.locator('[data-testid="opponent-analysis"]').count(), 0);
+    await page.getByRole('button', { name: 'Annulla mossa', exact: true }).click();
+    await ready();
+    assert.equal(await page.locator('[data-testid="move-row"]').count(), 0);
+    results.push('Maia sampled computer response and complete-turn undo');
+    await page.getByRole('combobox', { name: 'Avversario', exact: true }).selectOption('stockfish');
+    await move('e2e4');
+    assert.match(await page.locator('[data-testid="move-row"]').last().innerText(), /Stockfish/);
+    await page.getByRole('button', { name: 'Annulla mossa', exact: true }).click();
+    await ready();
+    await page.getByRole('combobox', { name: 'Avversario', exact: true }).selectOption('maia');
+    await page.getByRole('combobox', { name: 'Modello Maia', exact: true }).selectOption('5m');
+    await ready();
+    await page.getByRole('combobox', { name: 'Rating Bianco', exact: true }).selectOption('1100');
+    await ready();
+    await page.getByRole('combobox', { name: 'Rating Nero', exact: true }).selectOption('1900');
+    await ready();
+    assert.match(await page.locator('.analysis-summary').innerText(), /Rating 1100/);
+    await move('e2e4');
+    assert.match(await page.locator('[data-testid="move-row"]').last().innerText(), /Maia-3/);
+    await page.getByRole('button', { name: 'Annulla mossa', exact: true }).click();
+    await ready();
+    results.push('Stockfish alternate opponent, Maia 5M and separate white/black ratings');
+  }
   await reset();
-  for (const uci of ['e2e4', 'e7e5', 'g1f3', 'b8c6', 'f1c4', 'g8f6', 'e1g1']) await move(uci);
-  assert.match(await page.locator('.move-list').innerText(), /O-O/);
-  results.push('Castling through the desktop');
-  console.log(results.at(-1));
-  await reset();
-  for (const uci of ['e2e4', 'a7a6', 'e4e5', 'd7d5', 'e5d6']) await move(uci);
-  assert.equal(await page.locator('[data-square="d5"] .piece').count(), 0);
-  results.push('En passant through the desktop');
-  console.log(results.at(-1));
-  await reset();
-  for (const uci of ['a2a4', 'h7h5', 'a4a5', 'h5h4', 'a5a6', 'h4h3', 'a6b7', 'h3g2', 'b7a8n'])
-    await move(uci);
-  assert.match(
-    await page.locator('[data-square="a8"]').getAttribute('aria-label'),
-    /cavallo bianco/,
-  );
-  results.push('Underpromotion selection');
-  console.log(results.at(-1));
-  await reset();
-  for (const uci of ['g1f3', 'g8f6', 'f3g1', 'f6g8', 'g1f3', 'g8f6', 'f3g1']) await move(uci);
-  assert.match(await page.locator('.position-status').innerText(), /triplice ripetizione/);
-  assert.equal(await page.locator('[data-square="f6"]').isEnabled(), false);
-  results.push('Threefold repetition from complete move history');
-  await page.getByRole('button', { name: 'Computer', exact: true }).click();
-  await ready();
-  assert.equal(
-    await page.getByRole('combobox', { name: 'Avversario', exact: true }).inputValue(),
-    'maia',
-  );
-  await move('e2e4');
-  assert.equal(await page.locator('[data-testid="move-row"]').count(), 2);
-  assert.match(await page.locator('[data-testid="move-row"]').last().innerText(), /Maia-3/);
-  assert.equal(await page.locator('[data-testid="opponent-analysis"]').count(), 0);
-  await page.getByRole('button', { name: 'Annulla mossa', exact: true }).click();
-  await ready();
-  assert.equal(await page.locator('[data-testid="move-row"]').count(), 0);
-  results.push('Maia sampled computer response and complete-turn undo');
-  await page.getByRole('combobox', { name: 'Avversario', exact: true }).selectOption('stockfish');
-  await move('e2e4');
-  assert.match(await page.locator('[data-testid="move-row"]').last().innerText(), /Stockfish/);
-  await page.getByRole('button', { name: 'Annulla mossa', exact: true }).click();
-  await ready();
-  await page.getByRole('combobox', { name: 'Avversario', exact: true }).selectOption('maia');
-  await page.getByRole('combobox', { name: 'Modello Maia', exact: true }).selectOption('5m');
-  await ready();
-  await page.getByRole('combobox', { name: 'Rating Bianco', exact: true }).selectOption('1100');
-  await ready();
-  await page.getByRole('combobox', { name: 'Rating Nero', exact: true }).selectOption('1900');
-  await ready();
-  assert.match(await page.locator('.analysis-summary').innerText(), /Rating 1100/);
-  await move('e2e4');
-  assert.match(await page.locator('[data-testid="move-row"]').last().innerText(), /Maia-3/);
-  await page.getByRole('button', { name: 'Annulla mossa', exact: true }).click();
-  await ready();
-  results.push('Stockfish alternate opponent, Maia 5M and separate white/black ratings');
-  await page.getByRole('tab', { name: 'Coach', exact: true }).click();
+  await page.getByRole('button', { name: 'Mostra coach', exact: true }).click();
   await page
     .getByRole('textbox', { name: 'Messaggio per Yomi' })
     .fill('Domanda di test senza account');
@@ -154,7 +280,7 @@ try {
   );
   await capture('artifacts/desktop-coach.png');
   results.push('Coach form and unavailable CLI fallback (no account calls)');
-  await page.getByRole('tab', { name: 'Analisi', exact: true }).click();
+  await page.getByRole('button', { name: 'Mostra coach', exact: true }).click();
   await page.getByRole('button', { name: 'Libera', exact: true }).click();
   await ready();
   await page.getByRole('combobox', { name: 'Modello Maia', exact: true }).selectOption('79m');
@@ -164,26 +290,62 @@ try {
   await page.getByRole('button', { name: 'Partita', exact: true }).click();
   assert.equal(await page.locator('.navigator').count(), 0);
   await page.getByRole('button', { name: 'Mostra analisi', exact: true }).click();
-  assert.equal(await page.locator('.inspector').count(), 0);
+  assert.equal(await page.locator('.analysis-body').isVisible(), false);
+  assert.ok((await page.locator('.analysis-dock').boundingBox()).height <= 38);
   await page.getByRole('button', { name: 'Registro', exact: true }).click();
   await page.getByRole('button', { name: 'Mostra analisi', exact: true }).click();
   await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(900, 700));
   await page.waitForTimeout(150);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  assert.ok((await page.locator('.chessboard').boundingBox()).width >= 300);
+  await rightDraw('e7', 'e5');
+  assert.equal(await page.locator('.manual-arrow[data-from="e7"]').count(), 1);
   await capture('artifacts/desktop-compact.png');
-  results.push('Panel rails and compact layout');
+  await page.locator('[data-square="a3"]').click();
+  assert.equal(await page.locator('.manual-arrow').count(), 0);
+  const boardRect = await page.locator('.chessboard').boundingBox();
+  await page.mouse.move(boardRect.x + boardRect.width / 2, boardRect.y + boardRect.height / 2);
+  await page.mouse.down({ button: 'right' });
+  await page.mouse.move(boardRect.x + boardRect.width / 2, boardRect.y - 10);
+  await page.mouse.up({ button: 'right' });
+  assert.equal(await page.locator('.manual-mark').count(), 0);
+  assert.equal(await page.locator('.draft-mark').count(), 0);
+  await page.getByRole('button', { name: 'Mostra coach', exact: true }).click();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  await capture('artifacts/desktop-compact-coach.png');
+  const compactCoachLayout = await page.evaluate(() => {
+    const board = document.querySelector('.chessboard').getBoundingClientRect();
+    const dock = document.querySelector('.analysis-dock').getBoundingClientRect();
+    const toolbar = document.querySelector('.analysis-toolbar').getBoundingClientRect();
+    return {
+      boardWidth: board.width,
+      dockHeight: dock.height,
+      toolbarHeight: toolbar.height,
+      height: innerHeight,
+    };
+  });
+  assert.ok(compactCoachLayout.toolbarHeight <= 38);
+  assert.ok(compactCoachLayout.boardWidth >= 300);
+  results.push(
+    'Panel rails, compact layout, automatic dock sizing, left-click clear and outside-board cancellation',
+  );
   assert.deepEqual(errors, []);
   await writeFile(
-    'artifacts/desktop-smoke.json',
+    path.join(artifactDirectory, 'desktop-smoke.json'),
     JSON.stringify(
       {
         platform: process.platform,
+        scope: boardOnly ? 'board and workspace' : 'full desktop',
         executable: process.env.YOMI_TEST_EXECUTABLE || 'source',
         results,
         errors,
         codex: 'disabled',
         stockfish: 'real local engine',
-        maia: 'real local 5M and 79M models, CPU inference',
+        maia: boardOnly
+          ? 'real local 79M model, CPU inference'
+          : 'real local 5M and 79M models, CPU inference',
+        layout,
+        compactCoachLayout,
       },
       null,
       2,

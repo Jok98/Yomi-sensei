@@ -24,6 +24,7 @@ const desktop = await electron.launch({
 });
 const errors = [];
 const results = [];
+const layoutStability = [];
 const boardOnly = process.argv.includes('--board-only');
 async function capture(file) {
   const data = await desktop.evaluate(async ({ BrowserWindow }) => {
@@ -49,6 +50,72 @@ try {
   };
   await ready();
   console.log('Desktop ready');
+  const withStableBoard = async (label, action, expectLoading = true) => {
+    await page.evaluate(() => {
+      const samples = [];
+      const measure = () => {
+        const board = document.querySelector('.chessboard').getBoundingClientRect();
+        const dock = document.querySelector('.analysis-dock').getBoundingClientRect();
+        samples.push({
+          x: board.x,
+          y: board.y,
+          width: board.width,
+          height: board.height,
+          dockHeight: dock.height,
+          loading: !!document.querySelector('.analysis-progress'),
+        });
+      };
+      const observer = new MutationObserver(measure);
+      observer.observe(document.querySelector('.board-pane'), {
+        subtree: true,
+        childList: true,
+        attributes: true,
+      });
+      const timer = setInterval(measure, 16);
+      measure();
+      window.stopYomiLayoutProbe = () => {
+        clearInterval(timer);
+        observer.disconnect();
+        measure();
+        delete window.stopYomiLayoutProbe;
+        return samples;
+      };
+    });
+    let samples;
+    try {
+      await action();
+      await ready();
+    } finally {
+      samples = await page.evaluate(() => window.stopYomiLayoutProbe());
+    }
+    const range = (field) =>
+      Math.max(...samples.map((sample) => sample[field])) -
+      Math.min(...samples.map((sample) => sample[field]));
+    const result = {
+      label,
+      samples: samples.length,
+      loadingSamples: samples.filter((sample) => sample.loading).length,
+      boardXRange: range('x'),
+      boardYRange: range('y'),
+      boardWidthRange: range('width'),
+      boardHeightRange: range('height'),
+      dockHeightRange: range('dockHeight'),
+    };
+    layoutStability.push(result);
+    console.log(`Layout ${label}: ${JSON.stringify(result)}`);
+    if (expectLoading) assert.ok(result.loadingSamples > 0, `${label}: loading state was sampled`);
+    for (const field of [
+      'boardXRange',
+      'boardYRange',
+      'boardWidthRange',
+      'boardHeightRange',
+      'dockHeightRange',
+    ])
+      assert.ok(
+        result[field] <= 0.5,
+        `${label}: ${field} shifted ${result[field]}px during analysis`,
+      );
+  };
   const rightDraw = async (from, to) => {
     const start = await page.locator(`[data-square="${from}"]`).boundingBox();
     const end = await page.locator(`[data-square="${to}"]`).boundingBox();
@@ -194,10 +261,14 @@ try {
     await page.getByRole('button', { name: 'Nuova partita', exact: true }).click();
     await ready();
   };
-  await move('e2e4');
+  await withStableBoard('refresh-maia', () =>
+    page.getByRole('button', { name: 'Ricalcola analisi', exact: true }).click(),
+  );
+  await withStableBoard('move-e2e4', () => move('e2e4'));
   assert.equal(await page.locator('[data-testid="move-row"]').count(), 1);
-  await page.getByRole('button', { name: 'Annulla mossa', exact: true }).click();
-  await ready();
+  await withStableBoard('undo-e2e4', () =>
+    page.getByRole('button', { name: 'Annulla mossa', exact: true }).click(),
+  );
   assert.equal(await page.locator('[data-testid="move-row"]').count(), 0);
   await page.locator('[data-square="e2"] .piece').dragTo(page.locator('[data-square="e4"]'));
   await ready();
@@ -229,7 +300,7 @@ try {
     assert.match(await page.locator('.position-status').innerText(), /triplice ripetizione/);
     assert.equal(await page.locator('[data-square="f6"]').isEnabled(), false);
     const terminalDockHeight = (await page.locator('.analysis-dock').boundingBox()).height;
-    assert.ok(terminalDockHeight < layout.dockHeight);
+    assert.ok(Math.abs(terminalDockHeight - layout.dockHeight) <= 0.5);
     await rightDraw('f6', 'g8');
     assert.equal(await page.locator('.manual-arrow').count(), 1);
     await page.keyboard.press('Escape');
@@ -266,6 +337,18 @@ try {
     await page.getByRole('button', { name: 'Annulla mossa', exact: true }).click();
     await ready();
     results.push('Stockfish alternate opponent, Maia 5M and separate white/black ratings');
+  }
+  if (boardOnly) {
+    await withStableBoard('computer-mode', () =>
+      page.getByRole('button', { name: 'Computer', exact: true }).click(),
+    );
+    await withStableBoard('computer-move-e2e4', () => move('e2e4'));
+    assert.equal(await page.locator('[data-testid="move-row"]').count(), 2);
+    await withStableBoard('computer-undo', () =>
+      page.getByRole('button', { name: 'Annulla mossa', exact: true }).click(),
+    );
+    await page.getByRole('button', { name: 'Libera', exact: true }).click();
+    await ready();
   }
   await reset();
   await page.getByRole('button', { name: 'Mostra coach', exact: true }).click();
@@ -326,8 +409,22 @@ try {
   });
   assert.ok(compactCoachLayout.toolbarHeight <= 38);
   assert.ok(compactCoachLayout.boardWidth >= 300);
+  await withStableBoard('compact-move-e7e5', () => move('e7e5'));
+  await page.getByRole('button', { name: 'Stockfish · tattica', exact: true }).click();
+  await withStableBoard('compact-refresh-stockfish', () =>
+    page.getByRole('button', { name: 'Ricalcola analisi', exact: true }).click(),
+  );
+  await withStableBoard(
+    'expand-analysis-notes',
+    () => page.locator('.metric-note summary').click(),
+    false,
+  );
+  await capture('artifacts/desktop-stable-analysis.png');
   results.push(
-    'Panel rails, compact layout, automatic dock sizing, left-click clear and outside-board cancellation',
+    'Board position and size remain stable throughout analysis, moves, undo, recalculation and expanded notes',
+  );
+  results.push(
+    'Panel rails, compact layout, stable dock sizing, left-click clear and outside-board cancellation',
   );
   assert.deepEqual(errors, []);
   await writeFile(
@@ -346,6 +443,7 @@ try {
           : 'real local 5M and 79M models, CPU inference',
         layout,
         compactCoachLayout,
+        layoutStability,
       },
       null,
       2,

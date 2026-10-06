@@ -706,15 +706,18 @@ small {
   container-type: inline-size;
   display: flex;
   flex-direction: column;
-  flex: 0 1 auto;
-  min-height: 36px;
-  max-height: min(300px, 40%);
+  flex: 0 0 auto;
+  min-height: 37px;
+  height: min(176px, 40%);
   width: min(100%, 980px);
   margin: 0 auto;
   border: 1px solid var(--border);
   border-bottom: 0;
   border-radius: 5px 5px 0 0;
   background: var(--panel);
+}
+.analysis-dock.collapsed {
+  height: 37px;
 }
 .analysis-toolbar {
   display: flex;
@@ -742,6 +745,7 @@ small {
   white-space: nowrap;
 }
 .analysis-body {
+  flex: 1;
   min-height: 0;
   overflow: auto;
   border-top: 1px solid var(--border);
@@ -1380,7 +1384,7 @@ small {
 }
 @media (max-height: 750px) {
   .analysis-dock {
-    max-height: 132px;
+    height: min(132px, 40%);
   }
   .analysis-content {
     padding: 6px 8px;

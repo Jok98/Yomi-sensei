@@ -23,3 +23,14 @@ Dependencies: M-01 completato.
 Validation: Smoke con Maia/Stockfish reali; git diff --check; Kiroku strict.
 Completion criteria: Start.cmd apre la build aggiornata; commit presente su origin.
 Risks: Il pacchetto precedente potrebbe essere aperto; usare un output distinto se necessario.
+
+### M-03: Scacchiera stabile durante il ricalcolo
+
+Status: completed
+Objective: Posizione e dimensione della scacchiera non cambiano quando si aggiorna l'analisi.
+Scope: Altezza compatta stabile del dock, regressione geometrica e pacchetto Windows 0.5.2.
+Expected artifacts: style.css, smoke-desktop.mjs, Start.cmd e pacchetto aggiornato.
+Dependencies: M-01 e M-02 completati; segnalazione dell'utente del 2026-10-06.
+Validation: Campionare i rettangoli durante caricamento, mossa, annullamento e ricalcolo in sorgenti/pacchetto.
+Completion criteria: Scostamento massimo 0,5 px, caricamento realmente osservato e avvio della build corretta.
+Risks: Non lasciare che errori, risultati o note modifichino l'altezza esterna del dock.

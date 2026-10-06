@@ -42,8 +42,8 @@ Conseguenze: Credenziali fuori da renderer e pacchetti; latenza del processo per
 
 Stato: active
 Area: interfaccia
-Decisione: Colori beige/marrone e SVG CBurnett, dock analisi compatto sotto la scacchiera, coach indipendente a destra.
-Motivazione: Preferenze esplicite dell'utente del 2026-10-06; spazio prioritario al gioco.
+Decisione: Colori beige/marrone e SVG CBurnett, dock analisi con spazio compatto stabile sotto la scacchiera, coach indipendente a destra.
+Motivazione: Preferenze e correzione YS-06 richieste dall'utente del 2026-10-06; il ricalcolo non deve muovere o ridimensionare la scacchiera.
 Conseguenze: Annotazioni col tasto destro non modificano la partita; frecce dei suggerimenti opzionali con preferenza locale salvata. Attribuzione e GPLv2+ dei pezzi incluse.
 
 ## Decisioni sostituite

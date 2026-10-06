@@ -14,11 +14,11 @@
 - 36 test Python dell'integrazione e 18 TypeScript superati; smoke scacchiera/workspace sorgenti e pacchetto passati.
 - Scacchiera beige/marrone con SVG classici; analisi sotto il gioco, frecce col destro e suggerimenti opzionali.
 - Issue in WORK.md: YS-01/02/03/04 corretti; consolidamento YS-05 ancora aperto.
-- Track conclusi: [scacchiera](tracks/board-workspace/START_HERE.md), Maia e desktop; UI 0.5.1 pubblicata in 5abb82b.
+- Track conclusi: [scacchiera](tracks/board-workspace/START_HERE.md), Maia e desktop; 0.5.2 corregge YS-06 con geometria stabile verificata.
 
 ## Prossima azione
 
-- Aprire Start.cmd per usare il pacchetto verificato in release/0.5.1/win-unpacked.
+- Aprire Start.cmd per usare il pacchetto verificato in release/0.5.2/win-unpacked.
 - Il coach con account reale resta da provare nel nuovo desktop; i test non consumano chiamate modello.
 - Per il lavoro successivo, partire dal consolidamento residuo in WORK.md.
 

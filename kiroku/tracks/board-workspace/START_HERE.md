@@ -10,10 +10,11 @@
 - Richiesta del 2026-10-06: SVG, beige/marrone, analisi sotto il gioco e frecce manuali/suggerite.
 - M-01 completato: scacchiera classica, dock compatto, annotazioni e frecce suggerite opzionali.
 - M-02 completato: pacchetto 0.5.1 verificato, codice pubblicato in 5abb82b su origin/codex/initial-yomi-sensei.
+- M-03 completato: YS-06 corretto nella build 0.5.2; scacchiera ferma durante il ricalcolo.
 
 ## Prossima azione
 
-- Aprire Start.cmd per usare la versione 0.5.1; il track è concluso.
+- Aprire Start.cmd per usare la versione 0.5.2; track concluso.
 
 ## Vincoli inderogabili
 

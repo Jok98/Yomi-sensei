@@ -31,7 +31,7 @@
 - L'annullamento considera chi ha giocato l'ultima semimossa.
 - Le risposte Codex appartengono alla posizione inviata; una nuova partita azzera la conversazione.
 - Shell neutra compatta ispirata a ComprehensionIDE; zoom nativo preservato.
-- Analisi in dock compatto sotto la scacchiera; coach laterale indipendente. Annotazioni non entrano nel controller o nel backend.
+- Analisi in dock compatto con altezza stabile per viewport sotto la scacchiera; risultati/caricamento scorrono internamente. Coach laterale indipendente e annotazioni fuori dal controller/backend.
 - Solo la preferenza frecce suggerite persiste in localStorage; le annotazioni appartengono alla posizione corrente.
 - Backend stateless rispetto alla partita: lo storico UCI completo permette di rilevare ripetizioni (YS-01 corretto).
 - Probabilità di scelta umana, W/D/L Maia e qualità tattica Stockfish restano campi distinti.
@@ -39,6 +39,6 @@
 ## Distribuzione
 
 - Vite compila il renderer; esbuild compila main/preload Electron.
-- PyInstaller incorpora backend e worker Maia onedir; electron-builder include Stockfish, Maia e pesi locali in `release/0.5.1/win-unpacked`.
+- PyInstaller incorpora backend e worker Maia onedir; electron-builder include Stockfish, Maia e pesi locali in `release/0.5.2/win-unpacked`.
 - `.runtime/`, `dist/`, `release/` e `artifacts/` sono output ignorati.
 - Docker e il precedente frontend PWA sono rimossi per richiesta dell'utente.

@@ -2,7 +2,7 @@
 
 ## In corso
 
-- Nessuna attività in corso; scacchiera 0.5.1 pubblicata nel track board-workspace.
+- Nessuna attività in corso; scacchiera 0.5.2 verificata nel track board-workspace.
 
 ## TODO
 
@@ -19,6 +19,15 @@ Già completati: test frontend, lockfile pnpm, README desktop e smoke automatico
 - Nessuna attività bloccata.
 
 ## Fatto
+
+### Attività: Scacchiera instabile durante l'analisi — YS-06
+
+Stato: done
+Completamento:
+Altezza del dock stabile e scroll interno. In nove sequenze sorgenti/pacchetto, posizione e
+dimensioni della scacchiera restano invariati (0 px), incluso il caricamento realmente osservato.
+Coperti Libera/Computer, risposta Maia, annullamento, refresh Stockfish/Maia e viewport compatta.
+Versione Windows 0.5.2 avviabile da Start.cmd; nessuna chiamata account nei test.
 
 - Scacchiera classica con SVG, dock sotto il gioco e frecce manuali/suggerite; UI 0.5.1 pubblicata in 5abb82b.
 - Smoke scacchiera/workspace sorgenti e pacchetto passati con Maia 79M/Stockfish reali, senza chiamate account; 18 test TypeScript passati.

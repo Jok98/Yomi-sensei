@@ -13,10 +13,10 @@
 ### board-workspace
 
 Status: closed
-Purpose: Scacchiera classica, analisi sotto il gioco e frecce manuali/suggerite.
+Purpose: Scacchiera classica, analisi compatta stabile e frecce manuali/suggerite; YS-06 corretto.
 Repos: Yomi-sensei
-Areas: frontend, layout, SVG e interazioni mouse.
-Keywords: scacchiera, CBurnett, analisi, frecce, tasto destro.
+Areas: frontend, dock, SVG e test di layout.
+Keywords: scacchiera, CBurnett, ricalcolo, altezza, frecce, YS-06.
 Read: tracks/board-workspace/START_HERE.md
 
 ### maia-integration

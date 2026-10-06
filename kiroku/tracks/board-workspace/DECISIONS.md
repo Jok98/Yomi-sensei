@@ -6,8 +6,8 @@
 
 Status: active
 Area: interfaccia
-Decision: Beige/marrone, SVG CBurnett locali e analisi sotto il gioco con altezza legata al contenuto.
-Rationale: Preferenza esplicita dell'utente del 2026-10-06; leggibilità e spazio per la scacchiera.
+Decision: Beige/marrone, SVG CBurnett locali e analisi sotto il gioco con altezza compatta stabile per viewport.
+Rationale: Preferenza dell'utente e correzione YS-06 del 2026-10-06: il ricalcolo non deve far muovere la scacchiera.
 Consequences: Coach laterale indipendente; conservare attribuzione GPLv2+ di Colin M. L. Burnett.
 
 ### Decisione: Annotazioni separate dalle mosse
@@ -20,4 +20,5 @@ Consequences: Annotazioni locali alla posizione; suggerimenti opzionali numerati
 
 ## Decisioni sostituite
 
+- Altezza del dock legata al contenuto: provocava ridimensionamento della scacchiera durante il caricamento; sostituita da spazio stabile e scroll interno.
 - Analisi nella sidebar destra e pezzi Unicode: sostituiti in questo track.

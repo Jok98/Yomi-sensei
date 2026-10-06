@@ -14,6 +14,7 @@
 
 ## Fatto
 
+- YS-06 corretto nella build 0.5.2: caricamento realmente osservato, rettangoli invariati con variazione 0 px in nove sequenze sorgenti/pacchetto.
 - Commit e push della migrazione con Maia: 2bbae38.
 - Scacchiera classica, dock compatto e suggerimenti evidenziati, con SVG e licenza distribuiti.
 - Annotazioni e frecce suggerite verificate nei sorgenti, incluse rotazione e preferenza persistente.

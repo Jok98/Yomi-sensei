@@ -2,6 +2,7 @@
 
 ## Aggiornamenti
 
+- 2026-10-06: YS-06 corretto nella build 0.5.2: la scacchiera resta ferma durante l'analisi. Dock compatto stabile, 18 test e smoke sorgenti/pacchetto passati; nove sequenze misurate con variazione 0 px.
 - 2026-10-06: scacchiera 0.5.1 pubblicata in 5abb82b; colori/SVG classici, analisi sotto il gioco e frecce manuali/suggerite. Track board-workspace chiuso; 18 test e smoke sorgenti/pacchetto superati. Avvio tramite Start.cmd in release/0.5.1/win-unpacked.
 
 - 2026-10-06: conclusi desktop-migration e maia-integration: shell Electron/React/TypeScript ispirata a ComprehensionIDE, nessun Docker, Maia-3 principale con modelli locali 5M/79M, Stockfish tattico e coach con metriche distinte. Corretti YS-01/02/03/04; YS-05 residuo aperto. Passano 36 test Python, 14 TypeScript e smoke sorgenti/pacchetto con motori reali. Consegna in release/maia/win-unpacked tramite Start.cmd; CPU verificata, CUDA/coach account reale/Linux/macOS non validati.

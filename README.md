@@ -6,7 +6,7 @@ come riferimento: scacchiera centrale, navigazione a sinistra, analisi sotto il 
 
 ## Avvio Windows
 
-Apri **Start.cmd**. Avvia il pacchetto corrente in `release/0.5.1/win-unpacked/Yomi Sensei.exe`.
+Apri **Start.cmd**. Avvia il pacchetto corrente in `release/0.5.2/win-unpacked/Yomi Sensei.exe`.
 Questa cartella include Electron, backend Python, worker Maia, pesi 5M/79M e Stockfish: l'avvio
 non richiede Docker, Python, Node o pnpm installati. Conserva tutta la cartella,
 non soltanto il file `.exe`.
@@ -21,8 +21,10 @@ I motori e la scacchiera funzionano anche senza Codex. Non usa `OPENAI_API_KEY`.
 - **Scacchiera** centrale: colori classici beige/marrone e pezzi SVG CBurnett; click o trascinamento,
   arrocco, en passant e selezione della promozione.
 - **Analisi** sotto la scacchiera: candidate e risposte in schede compatte, con fonti
-  **Maia · umana** e **Stockfish · tattica**. Il pannello segue il contenuto, ha un limite di altezza
+  **Maia · umana** e **Stockfish · tattica**. Il pannello mantiene un'altezza compatta e stabile durante il ricalcolo
   e si riduce con il tab o la freccia a destra. La barra destra apre indipendentemente il **Coach**.
+- La scacchiera conserva posizione e dimensioni mentre l'analisi viene aggiornata. Risultati,
+  indicatore di caricamento e note scorrono all'interno del pannello, senza ridimensionare il gioco.
 - Trascina col **tasto destro** tra due caselle per disegnare una freccia arancione; un click destro
   disegna un cerchio. Ripeti per togliere una singola annotazione. Click sinistro o **Esc** le cancella.
   Sono annotazioni di studio: non eseguono mosse e si azzerano quando cambia la posizione.
@@ -118,10 +120,10 @@ pnpm package:dir
 ```
 
 PyInstaller crea backend e worker Maia standalone; electron-builder assembla
-`release/0.5.1/win-unpacked/`. Il worker è una cartella onedir distinta dal backend
+`release/0.5.2/win-unpacked/`. Il worker è una cartella onedir distinta dal backend
 leggero. La build conserva i sorgenti e le licenze dei motori e dei pezzi SVG.
-Le build precedenti possono restare in `release/maia/` e `release/win-unpacked`;
-`Start.cmd` preferisce la versione 0.5.1. Un'app già aperta va chiusa e riavviata per vedere gli aggiornamenti.
+Le build precedenti possono restare in `release/0.5.1/`, `release/maia/` e `release/win-unpacked`;
+`Start.cmd` preferisce la versione 0.5.2. Un'app già aperta va chiusa e riavviata per vedere gli aggiornamenti.
 Il pacchetto locale non è firmato. Build e runtime di Linux/macOS non sono validati.
 
 ## Architettura
@@ -163,10 +165,12 @@ esplicitamente non disponibile. Verifica mosse normali/speciali, trascinamento,
 annullamento, ripetizioni, avversari, rating, pannelli e chat senza account.
 Verifica anche annotazioni col mouse, rotazione, frecce suggerite, preferenza persistente,
 dimensionamento del dock e asset SVG locali.
+Il rapporto include i rettangoli campionati durante il caricamento: posizione e dimensioni
+della scacchiera devono restare invariati entro 0,5 px, in modalità Libera e Computer.
 Non consuma chiamate al coach. Per provare il pacchetto invece dei sorgenti:
 
 ```powershell
-$env:YOMI_TEST_EXECUTABLE = (Resolve-Path 'release\0.5.1\win-unpacked\Yomi Sensei.exe').Path
+$env:YOMI_TEST_EXECUTABLE = (Resolve-Path 'release\0.5.2\win-unpacked\Yomi Sensei.exe').Path
 pnpm smoke:desktop
 ```
 

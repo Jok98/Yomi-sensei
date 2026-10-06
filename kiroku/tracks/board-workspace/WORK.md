@@ -2,14 +2,11 @@
 
 ## In corso
 
-- Pubblicazione della versione 0.5.1.
+- Nessuna attività in corso; track concluso.
 
 ## TODO
 
-### Attività: Verifiche e distribuzione
-
-Status: todo
-Completion: Push completato; smoke sorgenti/pacchetto e QA visiva già superati.
+- Nessuna attività residua nel track.
 
 ## Bloccato
 
@@ -21,6 +18,7 @@ Completion: Push completato; smoke sorgenti/pacchetto e QA visiva già superati.
 - Scacchiera classica, dock compatto e suggerimenti evidenziati, con SVG e licenza distribuiti.
 - Annotazioni e frecce suggerite verificate nei sorgenti, incluse rotazione e preferenza persistente.
 - 18 test TypeScript e smoke scacchiera/workspace sorgenti/pacchetto passati senza chiamate account.
+- Versione 0.5.1 pubblicata in 5abb82b; Start.cmd apre il pacchetto verificato.
 
 ## Annullato
 

@@ -2,7 +2,7 @@
 
 ## In corso
 
-- Scacchiera classica, analisi sotto il gioco e frecce nel track board-workspace.
+- Nessuna attività in corso; scacchiera 0.5.1 pubblicata nel track board-workspace.
 
 ## TODO
 
@@ -19,6 +19,9 @@ Già completati: test frontend, lockfile pnpm, README desktop e smoke automatico
 - Nessuna attività bloccata.
 
 ## Fatto
+
+- Scacchiera classica con SVG, dock sotto il gioco e frecce manuali/suggerite; UI 0.5.1 pubblicata in 5abb82b.
+- Smoke scacchiera/workspace sorgenti e pacchetto passati con Maia 79M/Stockfish reali, senza chiamate account; 18 test TypeScript passati.
 
 ### Attività: Ripetizioni non riconosciute — YS-01
 

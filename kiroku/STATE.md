@@ -10,6 +10,7 @@
 - Stockfish 19 valuta qualità tattica e candidate Maia; Codex usa il profilo autenticato del CLI della macchina.
 - Build Windows 0.5.1 in release/0.5.1/win-unpacked con Python, worker PyTorch CPU, modelli e Stockfish incorporati; smoke pacchetto passato.
 - Pezzi SVG CBurnett e colori classici; frecce/cerchi col tasto destro e suggerimenti opzionali con preferenza locale salvata.
+- UI 0.5.1 pubblicata in 5abb82b su origin/codex/initial-yomi-sensei; track board-workspace concluso.
 
 ## Verifiche attuali
 

@@ -2,22 +2,22 @@
 
 ## Active
 
-
-### board-workspace
-
-Status: active
-Purpose: Scacchiera classica, analisi sotto il gioco e frecce manuali/suggerite.
-Repos: Yomi-sensei
-Areas: frontend, layout, SVG e interazioni mouse.
-Keywords: scacchiera, CBurnett, analisi, frecce, tasto destro.
-Read: tracks/board-workspace/START_HERE.md
-Related: none
+- Nessuno.
 
 ## Paused
 
 - Nessuno.
 
 ## Closed
+
+### board-workspace
+
+Status: closed
+Purpose: Scacchiera classica, analisi sotto il gioco e frecce manuali/suggerite.
+Repos: Yomi-sensei
+Areas: frontend, layout, SVG e interazioni mouse.
+Keywords: scacchiera, CBurnett, analisi, frecce, tasto destro.
+Read: tracks/board-workspace/START_HERE.md
 
 ### maia-integration
 

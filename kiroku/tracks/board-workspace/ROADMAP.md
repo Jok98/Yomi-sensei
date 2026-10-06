@@ -15,7 +15,7 @@ Risks: Eventi mouse e misure del dock possono interferire con il gioco.
 
 ### M-02: Pacchetto e pubblicazione
 
-Status: in_progress
+Status: completed
 Objective: Rendere disponibile il desktop aggiornato e pubblicare il codice verificato.
 Scope: Build Windows, smoke del pacchetto, documentazione e push.
 Expected artifacts: Pacchetto locale, report smoke e Kiroku aggiornato.

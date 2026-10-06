@@ -6,7 +6,7 @@ Scacchiera classica e studio delle mosse senza sottrarre spazio al gioco.
 
 ## Stato corrente
 
-- M-01 completato; M-02 in corso: pacchetto e pubblicazione.
+- M-01 e M-02 completati; versione 0.5.1 pubblicata in 5abb82b su origin/codex/initial-yomi-sensei.
 - Push precedente riuscito: 2bbae38 su origin/codex/initial-yomi-sensei.
 
 ## Ambito

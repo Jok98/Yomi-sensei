@@ -9,11 +9,11 @@
 - Migrazione desktop e Maia pubblicate nel commit 2bbae38 sul branch codex/initial-yomi-sensei.
 - Richiesta del 2026-10-06: SVG, beige/marrone, analisi sotto il gioco e frecce manuali/suggerite.
 - M-01 completato: scacchiera classica, dock compatto, annotazioni e frecce suggerite opzionali.
-- M-02 in corso: pacchetto 0.5.1 verificato; pubblicazione in corso.
+- M-02 completato: pacchetto 0.5.1 verificato, codice pubblicato in 5abb82b su origin/codex/initial-yomi-sensei.
 
 ## Prossima azione
 
-- Pubblicare la versione verificata e chiudere il track.
+- Aprire Start.cmd per usare la versione 0.5.1; il track è concluso.
 
 ## Vincoli inderogabili
 

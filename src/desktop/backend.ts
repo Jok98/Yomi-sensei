@@ -19,7 +19,9 @@ export function findStockfish(directory: string): string | undefined {
 export function validateRequest(route: unknown, body: unknown): asserts route is ApiRoute {
   if (typeof route !== 'string' || !API_ROUTES.includes(route as ApiRoute))
     throw new Error('Operazione non consentita.');
-  if (JSON.stringify(body ?? null).length > 160_000) throw new Error('Richiesta troppo grande.');
+  const limit =
+    route === '/api/library/save' ? 1_500_000 : route === '/api/library/import' ? 260_000 : 160_000;
+  if (JSON.stringify(body ?? null).length > limit) throw new Error('Richiesta troppo grande.');
 }
 export class Backend {
   private process: ChildProcessWithoutNullStreams | null = null;
@@ -30,6 +32,7 @@ export class Backend {
   constructor(
     private root: string,
     private resources?: string,
+    private dataDirectory?: string,
   ) {}
 
   async start() {
@@ -70,6 +73,7 @@ export class Backend {
         PYTHONUTF8: '1',
         PYTHONUNBUFFERED: '1',
         YOMI_DESKTOP_TOKEN: this.token,
+        ...(this.dataDirectory ? { YOMI_DATA_DIR: this.dataDirectory } : {}),
         MAIA_RUNTIME_DIR: process.env.MAIA_RUNTIME_DIR || maiaRuntime,
         ...(this.resources ? { MAIA_WORKER_PATH: maiaWorker } : {}),
         ...(stockfish ? { STOCKFISH_PATH: stockfish } : {}),

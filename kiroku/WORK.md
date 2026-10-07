@@ -2,7 +2,7 @@
 
 ## In corso
 
-- Nessuna attività in corso; scacchiera con barra 0.5.3 verificata nel track board-workspace.
+- Archivio/studio/revisione unica/allenamento in corso nel [track personal-training](tracks/personal-training/START_HERE.md), inclusi UI, catture e YS-05.
 
 ## TODO
 

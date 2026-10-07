@@ -21,6 +21,7 @@ export interface Position {
   turn: Color;
   status: string;
   is_game_over: boolean;
+  is_checkmate?: boolean;
   result?: '1-0' | '0-1' | '1/2-1/2' | null;
   last_move_san: string | null;
   last_move_uci: string | null;
@@ -109,6 +110,7 @@ export interface MoveRecord {
   computer: boolean;
   engine: ComputerEngine | null;
   classification: Classification | null;
+  captured_piece?: string | null;
 }
 export interface ChatMessage {
   id: number;
@@ -126,6 +128,18 @@ export const API_ROUTES = [
   '/api/classify-move',
   '/api/analyze',
   '/api/chat',
+  '/api/position',
+  '/api/study/position',
+  '/api/study/move',
+  '/api/library/save',
+  '/api/library/list',
+  '/api/library/open',
+  '/api/library/import',
+  '/api/library/export',
+  '/api/library/finish',
+  '/api/library/review',
+  '/api/exercises/list',
+  '/api/exercises/attempt',
 ] as const;
 export type ApiRoute = (typeof API_ROUTES)[number];
 export type DesktopCommand =
@@ -143,5 +157,6 @@ export interface DesktopBridge {
 declare global {
   interface Window {
     yomi: DesktopBridge;
+    yomiFlush?: () => Promise<void>;
   }
 }

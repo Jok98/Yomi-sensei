@@ -1,5 +1,5 @@
 import type { Candidate, HumanCandidate } from '../../shared/types';
-import type { GameController, GameState } from '../controller';
+import { hintsHidden, type GameController, type GameState } from '../controller';
 import { Icon } from '../Icon';
 
 function CandidateRow({
@@ -134,7 +134,7 @@ function HumanPanel({ game, controller }: { game: GameState; controller: GameCon
         <strong>{game.position?.turn === 'black' ? 'Nero' : 'Bianco'} al tratto</strong>
         <span className="muted">Rating {rating}</span>
       </div>
-      {(game.analysisPending || game.busy) && (
+      {(game.analysisPending || game.humanPending || game.busy) && (
         <div className="analysis-progress">
           <span className="spinner" />
           {game.busy || 'Analisi Maia e Stockfish'}
@@ -220,6 +220,15 @@ export function AnalysisPanel({
   game: GameState;
   controller: GameController;
 }) {
+  if (hintsHidden(game))
+    return (
+      <div className="empty-state">
+        <Icon name="target" size={26} />
+        <strong>Allenamento senza suggerimenti</strong>
+        <span>Prova a scegliere la mossa e spiegare il tuo piano.</span>
+        <button onClick={controller.revealHints}>Mostra gli aiuti per questa posizione</button>
+      </div>
+    );
   if (game.analysisSource === 'human') return <HumanPanel game={game} controller={controller} />;
   const analysis = game.analysis?.fen === game.position?.fen ? game.analysis : null;
   const reply = analysis?.replies.find((item) => item.after_uci === game.activeCandidate);

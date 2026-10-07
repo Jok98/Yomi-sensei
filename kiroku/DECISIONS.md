@@ -54,6 +54,14 @@ Decisione: Barra verticale Stockfish dal lato Bianco, con colori orientati alla 
 Motivazione: Richiesta dell'utente del 2026-10-06 di una barra come chess.com; il cambio di fonte o candidata non deve alterare il vantaggio della posizione.
 Conseguenze: Matto/patta derivano dal risultato python-chess; FEN e turno devono corrispondere all'analisi. Valore precedente attenuato e puntini durante il calcolo, dato assente esplicito; la geometria esterna resta stabile.
 
+### Decisione: Archivio locale e revisione unica
+
+Stato: active
+Area: studio e persistenza
+Decisione: SQLite nel profilo desktop salva partita/chat/varianti, report finale e progressi degli esercizi; claim persistente prima della sola chiamata coach autenticata.
+Motivazione: Sei miglioramenti e vincoli dell'utente approvati il 2026-10-07.
+Conseguenze: Navigazione non distruttiva, linea conclusa immutabile, grafico/classificazioni riusati; domande successive in chat. Motore interrotto riprendibile esplicitamente; tentativo coach fallito non ripetuto.
+
 ## Decisioni sostituite
 
 - PWA in un container Docker: sostituita dal desktop il 2026-10-06.

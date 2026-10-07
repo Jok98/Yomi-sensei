@@ -145,14 +145,16 @@ def position_state(
     board: chess.Board,
     last_move_san: str | None = None,
     last_move_uci: str | None = None,
+    claim_draw: bool = True,
 ) -> PositionState:
-    outcome = board.outcome(claim_draw=True)
+    outcome = board.outcome(claim_draw=claim_draw)
     return PositionState(
         fen=board.fen(),
         legal_moves=_legal_moves(board),
         turn="white" if board.turn else "black",
-        status=_game_status(board),
+        status=_game_status(board) if claim_draw or outcome else f"Studio · muove il {'Bianco' if board.turn else 'Nero'}",
         is_game_over=outcome is not None,
+        is_checkmate=board.is_checkmate(),
         result=outcome.result() if outcome else None,
         last_move_san=last_move_san,
         last_move_uci=last_move_uci,
@@ -170,6 +172,7 @@ def apply_move(
     promotion: str | None,
     initial_fen: str | None = None,
     moves_uci: list[str] | None = None,
+    study: bool = False,
 ) -> PositionState:
     board = parse_board(fen, initial_fen, moves_uci)
     suffix = promotion or ""
@@ -183,7 +186,7 @@ def apply_move(
 
     san = board.san(move)
     board.push(move)
-    return position_state(board, last_move_san=san, last_move_uci=move.uci())
+    return position_state(board, last_move_san=san, last_move_uci=move.uci(), claim_draw=not study)
 
 
 def _format_score(score: chess.engine.Score) -> str:
@@ -278,6 +281,7 @@ class StockfishService:
         self.default_depth = default_depth
         self._engine: chess.engine.SimpleEngine | None = None
         self._lock = asyncio.Lock()
+        self._analysis_cache: dict[tuple, AnalyzeResponse] = {}
 
     @property
     def available(self) -> bool:
@@ -302,10 +306,11 @@ class StockfishService:
         include_replies: bool = True,
         initial_fen: str | None = None,
         moves_uci: list[str] | None = None,
+        claim_draw: bool = True,
     ) -> AnalyzeResponse:
         board = parse_board(fen, initial_fen, moves_uci)
         requested_depth = depth or self.default_depth
-        if board.is_game_over(claim_draw=True):
+        if board.is_game_over(claim_draw=claim_draw):
             return AnalyzeResponse(
                 fen=board.fen(),
                 side_to_move="white" if board.turn else "black",
@@ -314,13 +319,17 @@ class StockfishService:
                 replies=[],
             )
 
+        context_key = (board.root().fen(), tuple(move.uci() for move in board.move_stack), requested_depth, claim_draw)
+        key = (*context_key, include_replies)
         async with self._lock:
-            infos = await asyncio.to_thread(
-                self._analyze_sync,
-                board,
-                requested_depth,
-            )
-            candidates = _candidate_moves(board, infos)
+            if key in self._analysis_cache:
+                return self._analysis_cache[key].model_copy(deep=True)
+            base = self._analysis_cache.get((*context_key, False))
+            if base:
+                candidates = base.model_copy(deep=True).candidates
+            else:
+                infos = await asyncio.to_thread(self._analyze_sync, board, requested_depth)
+                candidates = _candidate_moves(board, infos)
             replies: list[ReplyAnalysis] = []
             if include_replies:
                 for candidate in candidates:
@@ -343,13 +352,17 @@ class StockfishService:
                         )
                     )
 
-        return AnalyzeResponse(
-            fen=board.fen(),
-            side_to_move="white" if board.turn else "black",
-            depth=requested_depth,
-            candidates=candidates,
-            replies=replies,
-        )
+            result = AnalyzeResponse(
+                fen=board.fen(),
+                side_to_move="white" if board.turn else "black",
+                depth=requested_depth,
+                candidates=candidates,
+                replies=replies,
+            )
+            if len(self._analysis_cache) >= 96:
+                self._analysis_cache.pop(next(iter(self._analysis_cache)))
+            self._analysis_cache[key] = result.model_copy(deep=True)
+            return result
 
     def _analyze_sync(self, board: chess.Board, depth: int) -> list[dict]:
         engine = self._ensure_engine()

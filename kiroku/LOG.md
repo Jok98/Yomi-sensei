@@ -2,6 +2,9 @@
 
 ## Aggiornamenti
 
+- 2026-10-07: Implementati tutti i sei punti e le aggiunte nella versione 0.6.0. Passano 55 test Python, 34 TypeScript, ambiente Python pulito e smoke sorgenti/pacchetto con motori reali; geometria 0 px, persistenza al riavvio e coach unico con agent finto. CI/lock predisposti; pubblicazione e CI remota in corso.
+
+- 2026-10-07: Registrati tutti i miglioramenti approvati nel track personal-training, con storico persistente, analisi agent unica delle partite concluse, chat successiva, controlli a destra e catture per lato; implementazione avviata.
 - 2026-10-06: M-04 concluso nella build 0.5.3: barra del vantaggio Stockfish dal Bianco, orientamento e risultati terminali. Passano 40 test Python, 24 TypeScript e smoke sorgenti/pacchetto; nove sequenze ciascuno mostrano variazione 0 px di scacchiera/barra. Start.cmd apre il pacchetto aggiornato; nessuna chiamata account.
 - 2026-10-06: YS-06 corretto nella build 0.5.2: la scacchiera resta ferma durante l'analisi. Dock compatto stabile, 18 test e smoke sorgenti/pacchetto passati; nove sequenze misurate con variazione 0 px.
 - 2026-10-06: scacchiera 0.5.1 pubblicata in 5abb82b; colori/SVG classici, analisi sotto il gioco e frecce manuali/suggerite. Track board-workspace chiuso; 18 test e smoke sorgenti/pacchetto superati. Avvio tramite Start.cmd in release/0.5.1/win-unpacked.

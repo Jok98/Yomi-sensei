@@ -14,17 +14,17 @@ Condizione: Sviluppo e verifiche correnti avvengono su Windows x64.
 Impatto: Linux/macOS possono richiedere adattamenti a packaging, motore e gestione dei processi.
 Mitigazione: Non presentare gli script multipiattaforma come runtime già validato.
 
-### Rischio: Riproducibilità Python e CI
+### Rischio: Chiamata coach interrotta
 
-Condizione: Dipendenze Python con intervalli e nessuna pipeline CI.
-Impatto: Una preparazione futura può risolvere versioni differenti.
-Mitigazione: YS-05 conserva il follow-up; il frontend ha pnpm-lock.yaml e verifiche ripetibili.
+Condizione: Il processo si chiude dopo aver iniziato una chiamata agent della revisione.
+Impatto: La risposta può non essere salvata pur avendo consumato il tentativo account.
+Mitigazione: Claim SQLite prima della chiamata e nessun retry dopo un tentativo; report motore e chat disponibili.
 
 ## Rischi accettati
 
 - PyTorch e pesi aumentano il pacchetto Windows a circa 1,27 GB; inferenza CPU verificata, CUDA non validato.
 - Il rating Maia condiziona il modello Lichess blitz e non garantisce forza o comportamento individuale identici.
-- Stato partita e conversazione in memoria: chiusura e nuova partita li azzerano.
+- SQLite conserva dati locali nel profilo; eseguire backup del database con app chiusa per conservarli anche fuori macchina.
 - Connessione Internet necessaria soltanto per il coach dopo la preparazione dei runtime.
 
 ## Rischi chiusi

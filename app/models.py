@@ -18,6 +18,7 @@ class PositionState(BaseModel):
     turn: Literal["white", "black"]
     status: str
     is_game_over: bool
+    is_checkmate: bool = False
     result: Literal["1-0", "0-1", "1/2-1/2"] | None = None
     last_move_san: str | None = None
     last_move_uci: str | None = None
@@ -141,6 +142,8 @@ class ChatMessage(BaseModel):
 
 
 class ChatRequest(GameContext):
+    game_id: str | None = Field(default=None, pattern=r"^[a-f0-9-]{36}$")
+    review_context: str = Field(default="", max_length=20000)
     pgn: str = Field(default="", max_length=20000)
     message: str = Field(min_length=1, max_length=4000)
     history: list[ChatMessage] = Field(default_factory=list, max_length=20)

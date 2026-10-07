@@ -10,11 +10,21 @@ import path from 'node:path';
 import { Backend, validateRequest } from './backend';
 import type { DesktopCommand } from '../shared/types';
 
-if (process.env.YOMI_USER_DATA) app.setPath('userData', process.env.YOMI_USER_DATA);
+app.setPath(
+  'userData',
+  process.env.YOMI_USER_DATA || path.join(app.getPath('appData'), 'Yomi Sensei'),
+);
 let window: BrowserWindow | null = null;
 let backend: Backend | null = null;
 let ready: Promise<void>;
 let quitting = false;
+const ownsProfile = app.requestSingleInstanceLock();
+if (!ownsProfile) app.quit();
+app.on('second-instance', () => {
+  if (window?.isMinimized()) window.restore();
+  window?.show();
+  window?.focus();
+});
 const send = (command: DesktopCommand) => window?.webContents.send('yomi:command', command);
 const command = (
   label: string,
@@ -23,9 +33,14 @@ const command = (
 ): MenuItemConstructorOptions => ({ label, accelerator, click: () => send(type) });
 
 app.whenReady().then(async () => {
+  if (!ownsProfile) return;
   nativeTheme.themeSource = 'dark';
   const root = app.isPackaged ? process.resourcesPath : path.resolve(__dirname, '..');
-  backend = new Backend(root, app.isPackaged ? process.resourcesPath : undefined);
+  backend = new Backend(
+    root,
+    app.isPackaged ? process.resourcesPath : undefined,
+    app.getPath('userData'),
+  );
   ready = backend.start();
   void ready.catch(() => {});
   window = new BrowserWindow({
@@ -102,6 +117,11 @@ app.whenReady().then(async () => {
   window.on('ready-to-show', () => {
     if (process.env.YOMI_SMOKE !== '1') window?.show();
   });
+  window.on('close', (event) => {
+    if (quitting) return;
+    event.preventDefault();
+    app.quit();
+  });
   if (!app.isPackaged && process.env.YOMI_DEV_URL === 'http://127.0.0.1:5174')
     await window.loadURL(process.env.YOMI_DEV_URL);
   else await window.loadFile(path.join(__dirname, 'renderer', 'index.html'));
@@ -111,5 +131,18 @@ app.on('before-quit', (event) => {
   if (quitting) return;
   event.preventDefault();
   quitting = true;
-  void backend?.close().finally(() => app.quit());
+  void (async () => {
+    try {
+      if (window && !window.webContents.isDestroyed())
+        await window.webContents.executeJavaScript('window.yomiFlush?.()');
+    } catch (error) {
+      // Keep the renderer and its unsaved snapshot alive so the user can retry.
+      quitting = false;
+      console.error('Salvataggio prima della chiusura fallito:', error);
+      window?.show();
+      return;
+    }
+    await backend?.close();
+    app.quit();
+  })();
 });

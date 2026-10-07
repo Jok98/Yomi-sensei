@@ -20,7 +20,7 @@ export function boardEvaluation(
       position.result === '1-0' ? 'white' : position.result === '0-1' ? 'black' : null;
     return {
       kind: 'result',
-      label: favored ? 'M0' : '½',
+      label: favored ? (position.is_checkmate === false ? position.result : 'M0') : '½',
       description: position.status,
       favored,
       whiteShare: favored === 'white' ? 100 : favored === 'black' ? 0 : 50,

@@ -2,31 +2,32 @@
 
 ## Stato corrente
 
-- Yomi Sensei usa Electron, React e TypeScript con backend Python locale gestito.
-- La shell riprende ComprehensionIDE: navigazione a sinistra, scacchiera centrale, analisi sotto e coach richiudibile a destra.
-- Docker e il precedente frontend PWA sono rimossi per richiesta esplicita dell'utente.
-- Lo storico partita resta volatile; FEN iniziale e mosse UCI ricostruiscono il Board con stack.
-- Maia-3 è l'avversario predefinito: modelli locali 79M/5M, rating Bianco/Nero separati e mosse campionate dalla policy.
-- Stockfish 19 valuta qualità tattica e candidate Maia; Codex usa il profilo autenticato del CLI della macchina.
-- Build Windows 0.5.3 in release/0.5.3/win-unpacked con Python, worker PyTorch CPU, modelli e Stockfish incorporati; smoke pacchetto passato.
-- Pezzi SVG CBurnett e colori classici; frecce/cerchi col tasto destro e suggerimenti opzionali con preferenza locale salvata.
-- YS-06 corretto: geometria della scacchiera stabile durante il ricalcolo; track board-workspace concluso.
-- Barra del vantaggio Stockfish dal Bianco, indipendente da fonte/candidata; colori ruotabili, ultimo valore marcato durante il calcolo e risultato terminale esplicito.
+- Yomi Sensei 0.6.0: Electron/React/TypeScript, backend Python gestito, senza Docker.
+- Maia-3 locale 79M/5M avversario principale; Stockfish 19 valuta qualità e Codex CLI spiega.
+- SQLite nel profilo conserva partite, conversazioni, varianti, note/frecce, report e progressi.
+- Archivio cercabile/filtrabile con PGN/FEN; studio non distruttivo e linee concluse immutabili.
+- Revisione finale in background salvata; una sola chiamata coach autenticata per partita.
+- Esercizi dagli errori con aiuti progressivi, tentativi persistenti e ripasso.
+- Bianco/Nero/casuale, orologi/incremento, conclusione, allenamento senza aiuti e popup matto.
+- Tavoliere classico con catture per colore, controlli a destra opposti alla barra Stockfish.
+- Giudizi in background, analisi progressiva/cache e geometria del tavoliere stabile (YS-06).
+- CI Windows e dipendenze Python dirette/transitive vincolate; YS-05 in verifica finale.
+- Track attivo personal-training: M-01/M-05 verificate, M-06 push/CI in corso; pacchetto Windows verificato.
 
 ## Verifiche attuali
 
-- 40 test Python, 24 TypeScript, typecheck, build e formattazione superati; esiti di matto/patta e prospettiva verificati nei test.
-- Smoke scacchiera/workspace sorgenti e pacchetto 0.5.3 con Maia 79M/Stockfish reali: barra, rotazione, segno con Nero al tratto, matto, SVG, annotazioni, layout normale/compatto e collasso.
-- Nove sequenze di aggiornamento analisi in ciascuno smoke: variazione 0 px di posizione/dimensione della scacchiera e della barra, caricamento realmente osservato.
-- Smoke precedenti dell'integrazione Electron con Maia 5M/79M e Stockfish reali: mosse speciali,
-  trascinamento, ripetizioni, avversari, annullamento, rating, pannelli e layout compatto.
-- La chat nei test usa intenzionalmente un CLI non disponibile: nessuna chiamata account.
-- Benchmark worker CPU su 11 posizioni: mediana a caldo 34 ms per 5M, 193 ms per 79M; non è latenza totale dell'app.
-- Rapporti/screenshot attuali in artifacts/evaluation-source/ e artifacts/evaluation-packaged/; benchmark in artifacts/maia-benchmark.json.
+- 55 test Python, 34 TypeScript, typecheck/build/formattazione passati.
+- Ambiente Python pulito: installazione vincolata e suite passate; Maia dry-run coerente.
+- Smoke archivio sorgenti con motori reali: PGN, catture, varianti/commenti/frecce al riavvio,
+  popup matto, riuso report, chat senza account, esercizi/progressi, Nero, clock e aiuti.
+- Nove sequenze scacchiera sorgenti: variazione 0 px di posizione/dimensioni tavoliere e barra.
+- Test coach finto: unicità, concorrenza, errore/interruzione, login assente e ripresa motore.
+- Artefatti in artifacts/training-library-source/ e artifacts/training-board-source/.
+
+- Smoke pacchetto 0.6.0: archivio/studio/report/esercizi/clock/matto/FEN/promozione/catture passati; nove sequenze di geometria con variazione 0 px. Rapporti in artifacts/training-library-packaged/ e artifacts/training-board-packaged/.
 
 ## Lavoro aperto
 
-- YS-01 corretto; chiamate legacy con sola FEN restano prive dello storico delle ripetizioni.
-- Persistenza, import/export PGN/FEN e revisione post-partita non implementati.
-- Chat reale, runtime CUDA e piattaforme diverse da Windows non validati.
-- CI ancora da predisporre; dipendenze Python con intervalli di versione.
+- Completare push e CI remota; pacchetto 0.6.0 verificato.
+- Coach con account reale, CUDA e piattaforme diverse da Windows non validati.
+- Chiamate legacy con sola FEN restano prive dello storico delle ripetizioni (YS-01).

@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { boardEvaluation, type BoardEvaluation } from '../../shared/evaluation';
 import type { Color } from '../../shared/types';
-import type { GameState } from '../controller';
+import { hintsHidden, type GameState } from '../controller';
 
 export function EvaluationBar({ game, orientation }: { game: GameState; orientation: Color }) {
+  const hidden = hintsHidden(game);
   const current = useMemo(
-    () => boardEvaluation(game.position, game.analysis),
-    [game.position, game.analysis],
+    () => (hidden ? null : boardEvaluation(game.position, game.analysis)),
+    [game.position, game.analysis, hidden],
   );
   const [previous, setPrevious] = useState<{ fen: string; value: BoardEvaluation } | null>(null);
-  const updating = !game.position?.is_game_over && !!(game.busy || game.analysisPending);
+  const updating = !hidden && !game.position?.is_game_over && !!(game.busy || game.analysisPending);
   useEffect(() => {
     if (current && game.position) setPrevious({ fen: game.position.fen, value: current });
     else if (!game.moves.length && !game.busy && !game.analysisPending) setPrevious(null);
@@ -18,11 +19,13 @@ export function EvaluationBar({ game, orientation }: { game: GameState; orientat
     updating && previous && (game.moves.length > 0 || previous.fen === game.position?.fen)
       ? previous.value
       : null;
-  const value = current ?? retained;
-  const state = updating ? 'updating' : current ? 'ready' : 'unavailable';
-  const description = updating
-    ? `${value ? `Ultima valutazione: ${value.description}. ` : ''}Stockfish sta aggiornando la posizione.`
-    : (current?.description ?? 'Valutazione Stockfish non disponibile');
+  const value = hidden ? null : (current ?? retained);
+  const state = hidden ? 'hidden' : updating ? 'updating' : current ? 'ready' : 'unavailable';
+  const description = hidden
+    ? 'Valutazione nascosta durante l’allenamento'
+    : updating
+      ? `${value ? `Ultima valutazione: ${value.description}. ` : ''}Stockfish sta aggiornando la posizione.`
+      : (current?.description ?? 'Valutazione Stockfish non disponibile');
   return (
     <div
       className={`evaluation-bar ${state}`}
@@ -44,7 +47,7 @@ export function EvaluationBar({ game, orientation }: { game: GameState; orientat
       <span className="evaluation-white" style={{ height: `${value?.whiteShare ?? 50}%` }} />
       <span className="evaluation-midpoint" />
       <span className={`evaluation-value favors-${value?.favored ?? 'white'}`}>
-        {value?.label ?? '—'}
+        {hidden ? '?' : (value?.label ?? '—')}
       </span>
       {updating && (
         <span className="evaluation-loading" aria-hidden="true">

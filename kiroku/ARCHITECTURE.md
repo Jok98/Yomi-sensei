@@ -25,23 +25,29 @@
 - `app/maia_service.py`: worker posseduto, cache per storico/modello/rating, analisi e mosse Maia.
 - `app/maia_worker.py`: inferenza PyTorch e policy legale del codice upstream fissato in `vendor/maia3`.
 - `app/llm_service.py`: prompt e processo Codex; credenziali solo nel profilo CLI.
+- `app/library.py`: SQLite/WAL nel profilo desktop, revisioni monotone, PGN/FEN, note/varianti, report e progressi.
+- `app/reviews.py`: job persistente, valutazioni per posizione, esercizi e claim della sola chiamata coach autenticata.
 - `app/desktop.py`: avvio locale e arresto alla chiusura dello stdin del processo padre.
 
 ## Pattern da preservare
 
 - FEN, storico, generazione, modello e rating invalidano le analisi prima di una modifica del contesto.
 - L'annullamento considera chi ha giocato l'ultima semimossa.
-- Le risposte Codex appartengono alla posizione inviata; una nuova partita azzera la conversazione.
+- Le risposte Codex appartengono alla partita/posizione inviata; la conversazione precedente resta nel suo archivio.
 - Shell neutra compatta ispirata a ComprehensionIDE; zoom nativo preservato.
-- Analisi in dock compatto con altezza stabile per viewport sotto la scacchiera; risultati/caricamento scorrono internamente. Coach laterale indipendente e annotazioni fuori dal controller/backend.
-- Solo la preferenza frecce suggerite persiste in localStorage; le annotazioni appartengono alla posizione corrente.
-- Backend stateless rispetto alla partita: lo storico UCI completo permette di rilevare ripetizioni (YS-01 corretto).
+- Analisi in dock compatto con altezza stabile per viewport sotto la scacchiera; risultati/caricamento scorrono internamente. Coach laterale indipendente e annotazioni salvate per posizione/variante.
+- La preferenza frecce suggerite persiste in localStorage; dati partita e annotazioni persistono in SQLite.
+- La legalità viene ricostruita da FEN iniziale e storico UCI validato (YS-01); SQLite conserva gli snapshot senza sostituire python-chess.
+- Cursore studio e varianti separati dalla linea giocata. La linea conclusa è immutabile; note/chat restano modificabili.
+- Il report finale viene riusato dal controller e dal contesto chat; claim persistente prima della chiamata agent, senza retry dopo un tentativo.
+- Giudizio in background e analisi rapida/profonda con cache; identità/generazione proteggono da risposte obsolete.
+- Il main completa il salvataggio prima della chiusura e mantiene una sola istanza per profilo.
 - Probabilità di scelta umana, W/D/L Maia e qualità tattica Stockfish restano campi distinti.
 - Barra indipendente dalla fonte/candidata selezionata; segno sempre dal Bianco, colori orientati al tavoliere. L'ultima valutazione resta marcata durante il calcolo; assenza/errore non diventano un punteggio di parità.
 
 ## Distribuzione
 
 - Vite compila il renderer; esbuild compila main/preload Electron.
-- PyInstaller incorpora backend e worker Maia onedir; electron-builder include Stockfish, Maia e pesi locali in `release/0.5.3/win-unpacked`.
+- PyInstaller incorpora backend e worker Maia onedir; electron-builder include Stockfish, Maia e pesi locali in `release/0.6.0/win-unpacked`.
 - `.runtime/`, `dist/`, `release/` e `artifacts/` sono output ignorati.
 - Docker e il precedente frontend PWA sono rimossi per richiesta dell'utente.

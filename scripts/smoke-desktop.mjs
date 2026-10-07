@@ -42,9 +42,10 @@ try {
   page.on('pageerror', (error) => errors.push(error.message));
   await page.waitForSelector('[data-square="e2"]', { timeout: 30_000 });
   const ready = async () => {
-    await page.waitForFunction(
-      () => document.querySelector('[role="grid"]')?.getAttribute('aria-busy') === 'false',
-    );
+    await page.waitForFunction(() => {
+      const board = document.querySelector('[role="grid"]');
+      return board?.dataset.gameId && board.getAttribute('aria-busy') === 'false';
+    });
     await page.waitForFunction(() => !document.querySelector('.analysis-progress'), undefined, {
       timeout: 45_000,
     });
@@ -264,11 +265,15 @@ try {
   );
   await rightDraw('d2', 'd4');
   await capture('artifacts/desktop-arrows.png');
+  await page.evaluate(() => window.yomiFlush());
   await page.reload();
   await ready();
   assert.equal(await arrows.isChecked(), true);
   assert.equal(await page.locator('.suggested-arrow').count(), 3);
-  assert.equal(await page.locator('.manual-mark').count(), 0);
+  assert.equal(await page.locator('.manual-mark').count(), 1);
+  await page.getByRole('button', { name: 'Torna alla partita', exact: true }).click();
+  await ready();
+  await page.keyboard.press('Escape');
   await arrows.uncheck();
   assert.equal(await page.locator('.suggested-arrow').count(), 0);
   results.push(
@@ -447,6 +452,8 @@ try {
   assert.equal(matedEvaluation.share, 0);
   assert.equal(matedEvaluation.label, 'M0');
   await capture('artifacts/desktop-evaluation-mate.png');
+  assert.equal(await page.locator('[data-testid="checkmate-popup"]').count(), 1);
+  await page.getByRole('button', { name: 'Chiudi risultato', exact: true }).click();
   results.push(
     'Stockfish advantage bar: White perspective, rotation, source/candidate independence, updating indicator and checkmate result',
   );

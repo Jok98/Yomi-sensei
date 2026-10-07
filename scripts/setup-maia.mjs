@@ -23,6 +23,8 @@ if (!process.argv.includes('--models-only')) {
     'pip',
     'install',
     'torch==2.8.0',
+    '-c',
+    'constraints-maia.txt',
     '--index-url',
     'https://download.pytorch.org/whl/cpu',
   ]);

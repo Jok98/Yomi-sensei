@@ -51,3 +51,4 @@ for (const file of ['LICENSE', 'UPSTREAM.md', 'README.md', 'pyproject.toml'])
   cpSync(`vendor/maia3/${file}`, `.runtime/maia/source/vendor/${file}`);
 cpSync('app/maia_worker.py', '.runtime/maia/source/maia_worker.py');
 cpSync('requirements-maia.txt', '.runtime/maia/source/requirements-maia.txt');
+cpSync('constraints-maia.txt', '.runtime/maia/source/constraints-maia.txt');

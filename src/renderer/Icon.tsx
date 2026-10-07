@@ -18,6 +18,20 @@ const paths = {
   panel: ['M3 4h18v16H3Z', 'M9 4v16'],
   check: ['m5 12 4 4L19 6'],
   book: ['M3 4h6l3 2 3-2h6v15h-6l-3 2-3-2H3Z', 'M12 6v15'],
+  folder: ['M3 6h7l2 2h9v12H3Z'],
+  'chevron-left': ['m15 6-6 6 6 6'],
+  'chevron-right': ['m9 6 6 6-6 6'],
+  play: ['m8 4 12 8-12 8Z'],
+  pause: ['M8 5v14M16 5v14'],
+  flag: ['M5 21V3m0 0h8l2 3h6v10h-7l-2-3H5'],
+  target: [
+    'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z',
+    'M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z',
+    'M12 10v4m-2-2h4',
+  ],
+  import: ['M12 3v12m-5-5 5 5 5-5', 'M4 16v5h16v-5'],
+  export: ['M12 16V4m-5 5 5-5 5 5', 'M4 16v5h16v-5'],
+  color: ['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z', 'M12 3v18'],
 } as const;
 export type IconName = keyof typeof paths;
 export function Icon({ name, size = 17 }: { name: IconName; size?: number }) {

@@ -1,6 +1,6 @@
 {
   "name": "yomi-sensei",
-  "version": "0.5.3",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "description": "Scacchiera desktop con Stockfish e coach Codex.",
@@ -19,6 +19,7 @@
     "format:check": "prettier --check src scripts tests/frontend vite.config.ts",
     "smoke:desktop": "node scripts/smoke-desktop.mjs",
     "smoke:board": "node scripts/smoke-desktop.mjs --board-only",
+    "smoke:library": "node scripts/smoke-library.mjs",
     "prepare:runtime": "node scripts/setup.mjs",
     "build:backend": "node scripts/build-backend.mjs",
     "build:maia": "node scripts/build-maia.mjs",
@@ -45,7 +46,7 @@
     "appId": "dev.yomi.sensei",
     "productName": "Yomi Sensei",
     "directories": {
-      "output": "release/0.5.3"
+      "output": "release/0.6.0"
     },
     "files": [
       "dist/**/*",

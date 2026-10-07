@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
-import { canPlay, parseFen, pieceColor, squares } from '../../shared/game';
+import { canPlay, capturesBy, parseFen, pieceColor, squares } from '../../shared/game';
+import { formatClock } from '../../shared/library';
 import {
   arrowGeometry,
   squareAtPoint,
@@ -7,7 +8,14 @@ import {
   type BoardMark,
 } from '../../shared/board-geometry';
 import type { Color, Promotion } from '../../shared/types';
-import type { GameController, GameState } from '../controller';
+import {
+  hintsHidden,
+  pathRecords,
+  studyKey,
+  visibleRecords,
+  type GameController,
+  type GameState,
+} from '../controller';
 import { Icon } from '../Icon';
 import { Piece } from './Piece';
 import { EvaluationBar } from './EvaluationBar';
@@ -20,6 +28,73 @@ const names: Record<string, string> = {
   n: 'cavallo',
   p: 'pedone',
 };
+
+function PlayerLine({
+  color,
+  game,
+  records,
+  bottom = false,
+}: {
+  color: Color;
+  game: GameState;
+  records: ReturnType<typeof visibleRecords>;
+  bottom?: boolean;
+}) {
+  const captured = capturesBy(records, color);
+  const groups = [...new Set(captured)].map((piece) => ({
+    piece,
+    count: captured.filter((item) => item === piece).length,
+  }));
+  const label = color === 'white' ? 'Bianco' : 'Nero';
+  const clock = game.clock;
+  return (
+    <div className="board-player" data-player-color={color}>
+      <span className="side-piece">
+        <Piece piece={color === 'white' ? 'K' : 'k'} />
+      </span>
+      <span>{label}</span>
+      <small>
+        {game.mode === 'computer'
+          ? color === game.playerColor
+            ? 'Tu'
+            : game.engine === 'maia'
+              ? 'Maia-3'
+              : 'Stockfish'
+          : 'Libera'}
+      </small>
+      <span
+        className="captured-pieces"
+        data-testid={`captures-${color}`}
+        data-count={captured.length}
+        role="img"
+        aria-label={`Pezzi presi dal ${label}: ${groups.map(({ piece, count }) => `${count} ${names[piece.toLowerCase()]}`).join(', ') || 'nessuno'}`}
+      >
+        {groups.map(({ piece, count }) => (
+          <span
+            className="captured-group"
+            key={piece}
+            title={`${count} ${names[piece.toLowerCase()]}`}
+          >
+            <Piece piece={piece} />
+            {count > 1 && <small>{count}</small>}
+          </span>
+        ))}
+      </span>
+      {clock && (
+        <span
+          className={`player-clock ${game.livePosition?.turn === color && !clock.paused && !game.gameResult ? 'ticking' : ''}`}
+          aria-label={`Tempo ${label}`}
+          title={clock.paused ? 'Orologio in pausa' : 'Tempo rimanente'}
+        >
+          {formatClock(clock[`${color}_ms`])}
+        </span>
+      )}
+      {bottom && !clock && !captured.length && (
+        <span className="board-state">{game.busy || game.position?.status || 'Caricamento'}</span>
+      )}
+    </div>
+  );
+}
 
 function Mark({
   mark,
@@ -82,11 +157,15 @@ export function Board({
   controller,
   orientation,
   suggestedArrows,
+  onFlip,
+  onFinish,
 }: {
   game: GameState;
   controller: GameController;
   orientation: Color;
   suggestedArrows: boolean;
+  onFlip: () => void;
+  onFinish: () => void;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [promotion, setPromotion] = useState<{
@@ -113,7 +192,7 @@ export function Board({
   useEffect(() => {
     setSelected(null);
     setPromotion(null);
-    setAnnotations({ position, marks: [] });
+    setAnnotations({ position, marks: game.marks[studyKey(game)] ?? [] });
     cancelDrawing();
   }, [position]);
   useEffect(() => {
@@ -122,6 +201,7 @@ export function Board({
         setPromotion(null);
         setSelected(null);
         setAnnotations({ position: null, marks: [] });
+        controller.setMarks([]);
         cancelDrawing();
       }
     };
@@ -129,14 +209,26 @@ export function Board({
     return () => window.removeEventListener('keydown', cancel);
   }, []);
   const pieces = parseFen(position?.fen ?? '8/8/8/8/8/8/8/8');
-  const playable = canPlay(position, game.mode, !!game.busy);
+  const playable =
+    !!game.gameId &&
+    (game.exercise
+      ? !game.exercise.solved && !game.busy
+      : game.variationId
+        ? !game.busy && !position?.is_game_over
+        : game.historyPly === null && canPlay(position, game.mode, !!game.busy, game.playerColor));
   const legalFrom = (square: string) =>
     playable ? position!.legal_moves.filter((move) => move.from_square === square) : [];
   const destinations = new Set(selected ? legalFrom(selected).map((move) => move.to_square) : []);
-  const last = game.moves.at(-1);
-  const lastJudged = game.moves.findLast((move) => move.classification);
+  const records = visibleRecords(game);
+  const last = records.at(-1);
+  const lastJudged = hintsHidden(game)
+    ? undefined
+    : records.findLast((move) => move.classification);
   const candidates =
-    game.analysis?.fen === position?.fen && !game.busy && !position?.is_game_over
+    !hintsHidden(game) &&
+    game.analysis?.fen === position?.fen &&
+    !game.busy &&
+    !position?.is_game_over
       ? game.analysisSource === 'human'
         ? game.analysis?.human?.candidates
         : game.analysis?.candidates
@@ -164,25 +256,108 @@ export function Board({
     <>
       <div className="board-stage">
         <div className="board-frame">
-          <div className="board-player">
-            <span className="side-piece">
-              <Piece piece={orientation === 'white' ? 'k' : 'K'} />
-            </span>
-            <span>{orientation === 'white' ? 'Nero' : 'Bianco'}</span>
-            <small>
-              {game.mode === 'computer'
-                ? game.engine === 'maia'
-                  ? 'Maia-3'
-                  : 'Stockfish'
-                : 'Partita libera'}
-            </small>
-          </div>
+          <PlayerLine
+            color={orientation === 'white' ? 'black' : 'white'}
+            game={game}
+            records={records}
+          />
           <div className="board-surface">
             <EvaluationBar game={game} orientation={orientation} />
+            <nav className="board-controls" aria-label="Controlli accanto alla scacchiera">
+              <button
+                className="icon-button"
+                aria-label="Mossa precedente"
+                title="Mossa precedente · esplora lo storico"
+                disabled={
+                  !!game.busy || !(game.historyPly ?? pathRecords(game).length) || !!game.exercise
+                }
+                onClick={controller.previous}
+              >
+                <Icon name="chevron-left" />
+              </button>
+              <button
+                className="icon-button"
+                aria-label="Mossa successiva"
+                title="Mossa successiva"
+                disabled={
+                  !!game.busy ||
+                  game.historyPly === null ||
+                  game.historyPly >= pathRecords(game).length ||
+                  !!game.exercise
+                }
+                onClick={controller.next}
+              >
+                <Icon name="chevron-right" />
+              </button>
+              {!game.gameResult && (game.historyPly !== null || game.clock?.paused) && (
+                <button
+                  className="icon-button"
+                  aria-label="Torna alla partita"
+                  title="Riprendi la partita"
+                  disabled={!!game.busy || !!game.exercise}
+                  onClick={() => void controller.resumeGame()}
+                >
+                  <Icon name="play" />
+                </button>
+              )}
+              <button
+                className="icon-button"
+                aria-label="Annulla mossa"
+                title="Annulla ultima mossa · Ctrl+Z"
+                disabled={
+                  !!game.busy ||
+                  !game.moves.length ||
+                  !!game.gameResult ||
+                  game.historyPly !== null ||
+                  !!game.exercise
+                }
+                onClick={() => controller.undo()}
+              >
+                <Icon name="undo" />
+              </button>
+              <button
+                className="icon-button"
+                aria-label="Ruota scacchiera"
+                title="Ruota scacchiera · Ctrl+F"
+                disabled={!!game.busy}
+                onClick={onFlip}
+              >
+                <Icon name="flip" />
+              </button>
+              {game.mode === 'computer' && (
+                <button
+                  className="icon-button"
+                  aria-label="Cambia colore giocato"
+                  title={`Nuova partita con il ${game.playerColor === 'white' ? 'Nero' : 'Bianco'}`}
+                  disabled={!!game.busy || !!game.exercise}
+                  onClick={() =>
+                    void controller.newGame(
+                      game.mode,
+                      game.playerColor === 'white' ? 'black' : 'white',
+                    )
+                  }
+                >
+                  <Icon name="color" />
+                </button>
+              )}
+              {!game.gameResult && !game.exercise && (
+                <button
+                  className="icon-button"
+                  aria-label="Concludi partita"
+                  title="Abbandona o concorda una patta"
+                  disabled={!!game.busy}
+                  onClick={onFinish}
+                >
+                  <Icon name="flag" />
+                </button>
+              )}
+            </nav>
             <div
               ref={boardRef}
               className="chessboard"
               role="grid"
+              data-fen={game.position?.fen}
+              data-game-id={game.gameId ?? undefined}
               aria-label="Scacchiera"
               aria-describedby="board-annotation-help"
               aria-busy={!!game.busy}
@@ -190,6 +365,7 @@ export function Board({
               onPointerDownCapture={(event) => {
                 if (event.button === 0) {
                   setAnnotations({ position, marks: [] });
+                  controller.setMarks([]);
                   cancelDrawing();
                   return;
                 }
@@ -217,18 +393,15 @@ export function Board({
                 const to = atPointer(event);
                 if (to && current.position === position) {
                   const mark = { from: current.from, to };
-                  setAnnotations((previous) => {
-                    const marks = previous.position === position ? previous.marks : [];
-                    const exists = marks.some(
-                      (item) => item.from === mark.from && item.to === mark.to,
-                    );
-                    return {
-                      position,
-                      marks: exists
-                        ? marks.filter((item) => item.from !== mark.from || item.to !== mark.to)
-                        : [...marks, mark],
-                    };
-                  });
+                  const marks = annotations.position === position ? annotations.marks : [];
+                  const exists = marks.some(
+                    (item) => item.from === mark.from && item.to === mark.to,
+                  );
+                  const nextMarks = exists
+                    ? marks.filter((item) => item.from !== mark.from || item.to !== mark.to)
+                    : [...marks, mark];
+                  setAnnotations({ position, marks: nextMarks });
+                  controller.setMarks(nextMarks);
                 }
                 cancelDrawing();
               }}
@@ -293,6 +466,20 @@ export function Board({
                 );
               })}
               <svg className="board-overlay" viewBox="0 0 800 800" aria-hidden="true">
+                {game.exercise && game.exercise.hint >= 2 && (
+                  <Mark
+                    kind="suggested"
+                    active
+                    orientation={orientation}
+                    mark={{
+                      from: game.exercise.exercise.best_move.slice(0, 2),
+                      to:
+                        game.exercise.hint >= 3
+                          ? game.exercise.exercise.best_move.slice(2, 4)
+                          : game.exercise.exercise.best_move.slice(0, 2),
+                    }}
+                  />
+                )}
                 {suggestedArrows &&
                   candidates?.map((candidate) => (
                     <Mark
@@ -319,14 +506,7 @@ export function Board({
               </svg>
             </div>
           </div>
-          <div className="board-player">
-            <span className="side-piece">
-              <Piece piece={orientation === 'white' ? 'K' : 'k'} />
-            </span>
-            <span>{orientation === 'white' ? 'Bianco' : 'Nero'}</span>
-            <small>{game.mode === 'computer' ? 'Tu' : 'Partita libera'}</small>
-            <span className="board-state">{game.busy || position?.status || 'Caricamento'}</span>
-          </div>
+          <PlayerLine color={orientation} game={game} records={records} bottom />
         </div>
       </div>
       <span id="board-annotation-help" className="visually-hidden">

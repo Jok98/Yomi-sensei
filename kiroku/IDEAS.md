@@ -2,13 +2,11 @@
 
 ## Idee aperte
 
-- Import/export PGN e modifica FEN con validazione.
-- Revisione post-partita con classificazione di errori e occasioni mancate.
-- Database SQLite locale per partite e conversazioni.
 - Confronto A/B tra Codex e un modello generalista.
 
 ## Idee adottate
 
+- Archivio/PGN/FEN, studio e varianti, revisione finale unica/chat, esercizi personali, colori/orologio/aiuti e reattività approvati il 2026-10-07; roadmap nel track personal-training.
 - Maia-3 come avversario principale e modello delle scelte umane, affiancato a Stockfish
   per qualità tattica e Codex per spiegazioni. L'utente approva l'implementazione il
   2026-10-06; stato e verifiche nel [track Maia](tracks/maia-integration/START_HERE.md),

@@ -1,9 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { GameController, type Transport } from '../../src/renderer/controller';
+import {
+  GameController,
+  visibleRecords,
+  hintsHidden,
+  type Transport,
+} from '../../src/renderer/controller';
 import { validateRequest } from '../../src/desktop/backend';
 import { parseFen, squares } from '../../src/shared/game';
 import type { Analysis, ApiRoute, Position } from '../../src/shared/types';
+import type { GameSnapshot, GameSummary, SavedGame } from '../../src/shared/library';
 
 const initial: Position = {
   fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
@@ -12,7 +18,10 @@ const initial: Position = {
   is_game_over: false,
   last_move_san: null,
   last_move_uci: null,
-  legal_moves: [{ from_square: 'e2', to_square: 'e4', promotion: null, uci: 'e2e4' }],
+  legal_moves: [
+    { from_square: 'e2', to_square: 'e4', promotion: null, uci: 'e2e4' },
+    { from_square: 'd2', to_square: 'd4', promotion: null, uci: 'd2d4' },
+  ],
 };
 const whiteMove: Position = {
   ...initial,
@@ -35,6 +44,12 @@ const secondWhite: Position = {
   fen: 'rnbqkbnr/pppp1ppp/8/4p3/2B1P3/8/PPPP1PPP/RNBQK1NR b KQkq - 1 2',
   last_move_san: 'Bc4',
   last_move_uci: 'f1c4',
+};
+const d4: Position = {
+  ...whiteMove,
+  fen: 'rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1',
+  last_move_san: 'd4',
+  last_move_uci: 'd2d4',
 };
 function analysis(
   fen: string,
@@ -96,6 +111,67 @@ class FakeApi implements Transport {
   classificationWait: Promise<unknown> | null = null;
   analysisWait: Promise<Analysis> | null = null;
   chatWait: Promise<unknown> | null = null;
+  computerWait: Promise<Position> | null = null;
+  failSave = false;
+  saved = new Map<string, { summary: GameSummary; snapshot: GameSnapshot }>();
+  private open(id: string): SavedGame {
+    const value = this.saved.get(id)!;
+    const frames = [structuredClone(initial)];
+    const records = value.snapshot.moves.map((move, index) => {
+      const before = frames.at(-1)!;
+      const after = structuredClone(
+        (
+          { e2e4: whiteMove, e7e5: blackMove, f1c4: secondWhite, d2d4: d4 } as Record<
+            string,
+            Position
+          >
+        )[move.uci],
+      );
+      frames.push(after);
+      return {
+        ...move,
+        id: index + 1,
+        before,
+        after,
+        color: before.turn,
+        san: after.last_move_san!,
+      };
+    });
+    if (value.summary.result)
+      Object.assign(frames.at(-1)!, {
+        is_game_over: true,
+        result: value.summary.result,
+        is_checkmate: false,
+      });
+    const variations = value.snapshot.variations.map((branch) => {
+      const branchFrames = [frames[branch.root_ply]];
+      const branchRecords = branch.moves_uci.map((uci, index) => {
+        const before = branchFrames.at(-1)!;
+        const after = structuredClone(uci === 'd2d4' ? d4 : whiteMove);
+        branchFrames.push(after);
+        return {
+          id: 100 + index,
+          before,
+          after,
+          color: before.turn,
+          san: after.last_move_san!,
+          uci,
+          computer: false,
+          engine: null,
+          classification: null,
+        };
+      });
+      return { ...branch, frames: branchFrames, records: branchRecords };
+    });
+    return {
+      ...value.summary,
+      snapshot: structuredClone(value.snapshot),
+      frames,
+      records,
+      variations,
+      review: null,
+    };
+  }
   async request<T>(route: ApiRoute, body?: any): Promise<T> {
     this.calls.push({ route, body });
     let response: unknown;
@@ -104,11 +180,25 @@ class FakeApi implements Transport {
         response = structuredClone(initial);
         break;
       case '/api/game/move':
-        response = body.from_square === 'e2' ? whiteMove : secondWhite;
+      case '/api/study/move':
+        response =
+          body.from_square === 'e2'
+            ? whiteMove
+            : body.from_square === 'd2'
+              ? d4
+              : body.from_square === 'e7'
+                ? blackMove
+                : secondWhite;
         break;
       case '/api/game/computer-move':
         if (this.failComputer) throw new Error('Engine stopped');
-        response = blackMove;
+        response =
+          this.computerWait ??
+          (body.fen === initial.fen
+            ? whiteMove
+            : body.fen === blackMove.fen
+              ? secondWhite
+              : blackMove);
         break;
       case '/api/classify-move':
         response = this.classificationWait ?? {
@@ -121,7 +211,10 @@ class FakeApi implements Transport {
         };
         break;
       case '/api/analyze':
-        response = this.analysisWait ?? analysis(body.fen, body);
+        response = this.analysisWait ?? {
+          ...analysis(body.fen, body),
+          ...(body.include_human === false ? { human: null } : {}),
+        };
         break;
       case '/api/chat':
         response = this.chatWait ?? { answer: 'Una risposta sintetica.', model: 'test' };
@@ -136,6 +229,57 @@ class FakeApi implements Transport {
           default_reasoning_level: 'medium',
           catalog_source: 'fallback',
         };
+        break;
+      case '/api/library/save': {
+        if (this.failSave) throw new Error('Database non accessibile');
+        const id = body.game_id ?? crypto.randomUUID();
+        const summary: GameSummary = {
+          id,
+          revision: body.revision,
+          title: body.snapshot.title || 'Partita test',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          result: this.saved.get(id)?.summary.result ?? null,
+          finish_reason: null,
+          plies: body.snapshot.moves.length,
+          options: body.snapshot.options,
+        };
+        this.saved.set(id, { summary, snapshot: structuredClone(body.snapshot) });
+        response = summary;
+        break;
+      }
+      case '/api/library/list':
+        response = { games: [...this.saved.values()].map((value) => value.summary) };
+        break;
+      case '/api/library/open':
+        response = this.open(body.game_id);
+        break;
+      case '/api/study/position':
+        response = body.fen === initial.fen ? initial : whiteMove;
+        break;
+      case '/api/library/finish': {
+        const value = this.saved.get(body.game_id)!;
+        value.summary.result =
+          body.reason === 'draw' ? '1/2-1/2' : body.color === 'white' ? '0-1' : '1-0';
+        value.summary.revision += 1;
+        response = this.open(body.game_id);
+        break;
+      }
+      case '/api/library/review':
+        response = {
+          game_id: body.game_id,
+          state: 'complete',
+          progress: 100,
+          report: null,
+          agent_attempted: true,
+          agent_state: 'done',
+          summary: 'Saved',
+          error: null,
+          agent_error: null,
+        };
+        break;
+      case '/api/exercises/list':
+        response = { exercises: [] };
         break;
     }
     return (await response) as T;
@@ -170,7 +314,9 @@ test('YS-03: chat cannot receive candidates for the preceding position', async (
   await settle();
   assert.equal(game.getSnapshot().analysis?.candidates.length, 1);
   const waiting = deferred<unknown>();
+  const pendingAnalysis = deferred<Analysis>();
   api.classificationWait = waiting.promise;
+  api.analysisWait = pendingAnalysis.promise;
   const move = game.move('e2', 'e4');
   await settle();
   await game.sendChat('Quale mossa?', null, 'medium');
@@ -180,6 +326,7 @@ test('YS-03: chat cannot receive candidates for the preceding position', async (
   assert.deepEqual(chat.candidates, []);
   assert.deepEqual(chat.opponent_candidates, []);
   waiting.resolve({ code: 'book' });
+  pendingAnalysis.resolve(analysis(whiteMove.fen));
   await move;
 });
 test('YS-03: late analysis is discarded across a new game even with identical FEN', async () => {
@@ -200,10 +347,12 @@ test('YS-04: replies are requested in free mode and skipped against computer', a
   const api = new FakeApi();
   const game = new GameController(api);
   await game.newGame('free');
+  await settle();
   await game.newGame('computer');
+  await settle();
   assert.deepEqual(
     api.calls
-      .filter((call) => call.route === '/api/analyze')
+      .filter((call) => call.route === '/api/analyze' && call.body.include_human)
       .map((call) => call.body.include_replies),
     [true, false],
   );
@@ -252,6 +401,146 @@ test('board orientation and piece positions remain consistent', () => {
   assert.equal(squares('white')[0], 'a8');
   assert.equal(squares('black')[0], 'h1');
   assert.equal(new Set(squares('white')).size, 64);
+});
+
+test('classification does not block the opponent and stays bound to its saved move', async () => {
+  const api = new FakeApi();
+  const game = new GameController(api);
+  await game.newGame('computer');
+  const pending = deferred<unknown>();
+  api.classificationWait = pending.promise;
+  await game.move('e2', 'e4');
+  assert.equal(game.getSnapshot().moves.length, 2);
+  assert.equal(game.getSnapshot().busy, null);
+  assert.equal(game.getSnapshot().moves[0].classification, null);
+  pending.resolve({ code: 'book', label: 'Da manuale' });
+  await settle();
+  await game.flushSave();
+  assert.equal(
+    api.saved.get(game.getSnapshot().gameId!)!.snapshot.moves[0].classification?.code,
+    'book',
+  );
+  game.dispose();
+});
+
+test('study and a saved variation preserve the original line and persist annotations and chat', async () => {
+  const api = new FakeApi();
+  const game = new GameController(api);
+  await game.newGame();
+  await game.move('e2', 'e4');
+  await game.move('e7', 'e5');
+  game.navigate(0);
+  assert.equal(visibleRecords(game.getSnapshot()).length, 0);
+  await game.move('d2', 'd4');
+  assert.equal(game.getSnapshot().moves.length, 2);
+  await game.startVariation();
+  await game.move('d2', 'd4');
+  game.setComment('Controllo del centro');
+  game.setMarks([{ from: 'd4', to: 'd5' }]);
+  await game.sendChat('Piano della variante?', null, null);
+  await game.prepareClose();
+  const id = game.getSnapshot().gameId!;
+  const branchId = game.getSnapshot().variationId!;
+  const chat = api.calls.filter((c) => c.route === '/api/chat').at(-1)!.body;
+  assert.equal(chat.pgn, '1. d4');
+  assert.deepEqual(chat.moves_uci, ['d2d4']);
+  const reopened = new GameController(api);
+  await reopened.initialize();
+  assert.equal(reopened.getSnapshot().gameId, id);
+  assert.equal(reopened.getSnapshot().historyPly, 2);
+  assert.deepEqual(
+    reopened.getSnapshot().moves.map((m) => m.uci),
+    ['e2e4', 'e7e5'],
+  );
+  assert.deepEqual(reopened.getSnapshot().variations[0].moves_uci, ['d2d4']);
+  assert.equal(reopened.getSnapshot().comments[`${branchId}:1`], 'Controllo del centro');
+  assert.deepEqual(reopened.getSnapshot().marks[`${branchId}:1`], [{ from: 'd4', to: 'd5' }]);
+  assert.equal(reopened.getSnapshot().chat.length, 2);
+  assert.equal(reopened.getSnapshot().mateNotice, null);
+  game.dispose();
+  reopened.dispose();
+});
+
+test('playing Black starts with an AI move and undo preserves that opening move', async () => {
+  const game = new GameController(new FakeApi());
+  await game.newGame('computer', 'black');
+  assert.equal(game.getSnapshot().position?.turn, 'black');
+  assert.equal(game.getSnapshot().moves[0].computer, true);
+  game.setTimeControl(300000, 2000);
+  assert.equal(game.getSnapshot().clock!.base_ms, 300000);
+  game.undo();
+  assert.equal(game.getSnapshot().moves.length, 1);
+  await game.move('e7', 'e5');
+  assert.equal(game.getSnapshot().moves.length, 3);
+  game.undo();
+  assert.equal(game.getSnapshot().moves.length, 1);
+  assert.equal(game.getSnapshot().position?.fen, whiteMove.fen);
+  game.dispose();
+});
+
+test('study pauses the clock and training hides hints until explicitly requested', async () => {
+  const game = new GameController(new FakeApi());
+  await game.newGame();
+  game.setTimeControl(60000, 2000);
+  game.setTraining(true);
+  assert.equal(hintsHidden(game.getSnapshot()), true);
+  game.revealHints();
+  assert.equal(hintsHidden(game.getSnapshot()), false);
+  await game.move('e2', 'e4');
+  assert.equal(hintsHidden(game.getSnapshot()), true);
+  assert.ok(game.getSnapshot().clock!.white_ms > 60000);
+  game.previous();
+  const clock = game.getSnapshot().clock!;
+  game.tick(Date.now() + 600000);
+  assert.deepEqual(game.getSnapshot().clock, clock);
+  assert.equal(clock.paused, true);
+  await game.resumeGame();
+  assert.equal(game.getSnapshot().clock!.paused, false);
+  await game.prepareClose();
+  game.dispose();
+});
+
+test('timeout while the opponent thinks discards its late response and persists the result', async () => {
+  const api = new FakeApi();
+  const game = new GameController(api);
+  await game.newGame('computer');
+  game.setTimeControl(60000);
+  const pending = deferred<Position>();
+  api.computerWait = pending.promise;
+  const moving = game.move('e2', 'e4');
+  await settle();
+  game.tick(Date.now() + 61000);
+  await settle();
+  await settle();
+  pending.resolve(blackMove);
+  await moving;
+  assert.equal(game.getSnapshot().gameResult, '1-0');
+  assert.deepEqual(
+    game.getSnapshot().moves.map((m) => m.uci),
+    ['e2e4'],
+  );
+  assert.equal(api.saved.get(game.getSnapshot().gameId!)!.summary.result, '1-0');
+  assert.equal(game.getSnapshot().clock!.paused, true);
+  game.dispose();
+});
+
+test('a failed save keeps changes and blocks switching until the save succeeds', async () => {
+  const api = new FakeApi();
+  const game = new GameController(api);
+  await game.newGame();
+  const id = game.getSnapshot().gameId!;
+  await game.move('e2', 'e4');
+  await settle();
+  api.failSave = true;
+  await assert.rejects(game.prepareClose(), /Database/);
+  assert.equal(game.getSnapshot().savePending, true);
+  await game.newGame();
+  assert.equal(game.getSnapshot().gameId, id);
+  api.failSave = false;
+  await game.prepareClose();
+  assert.equal(api.saved.get(id)!.snapshot.moves.length, 1);
+  assert.equal(game.getSnapshot().savePending, false);
+  game.dispose();
 });
 test('complete UCI history accompanies moves, analysis, chat and undo', async () => {
   const api = new FakeApi();

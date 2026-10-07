@@ -146,3 +146,9 @@ test('pawn scores produce a bounded symmetric visual scale, separate from expect
   assert.equal(values[3].label, '0.0');
   assert.equal(values[3].favored, null);
 });
+
+test('resignation and timeout show the result without falsely claiming checkmate', () => {
+  const at: Position = { ...position(), is_game_over: true, is_checkmate: false, result: '1-0' };
+  assert.equal(boardEvaluation(at, null)?.label, '1-0');
+  assert.equal(boardEvaluation({ ...at, is_checkmate: true }, null)?.label, 'M0');
+});

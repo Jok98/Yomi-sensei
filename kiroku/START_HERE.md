@@ -11,16 +11,16 @@
 - Le mosse sono validate da python-chess; Maia-3 è l'avversario principale e Stockfish valuta la qualità tattica.
 - La chat usa `codex exec` con il login ChatGPT locale del Codex CLI.
 - Maia 79M predefinito, 5M selezionabile; rating Bianco/Nero separati e pesi locali.
-- 40 test Python e 24 TypeScript superati; smoke scacchiera/barra/workspace sorgenti e pacchetto passati.
+- 55 test Python e 34 TypeScript passati; nuovi flussi e geometria verificati nei sorgenti.
 - Scacchiera classica con barra Stockfish, analisi sotto il gioco e frecce manuali/suggerite opzionali.
-- Issue in WORK.md: YS-01/02/03/04 corretti; consolidamento YS-05 ancora aperto.
-- Track conclusi: [scacchiera](tracks/board-workspace/START_HERE.md), Maia e desktop; 0.5.3 aggiunge la barra preservando YS-06, con geometria stabile verificata.
+- Archivio SQLite, PGN/FEN, studio/varianti, revisione unica, esercizi, colori/clock e popup matto implementati.
+- Track attivo: [archivio e allenamento](tracks/personal-training/START_HERE.md), con tutti i miglioramenti approvati; M-06 verifica finale.
 
 ## Prossima azione
 
-- Aprire Start.cmd per usare il pacchetto verificato in release/0.5.3/win-unpacked.
+- Completare smoke del pacchetto 0.6.0, push e CI remota; Start.cmd punta alla nuova versione.
 - Il coach con account reale resta da provare nel nuovo desktop; i test non consumano chiamate modello.
-- Per il lavoro successivo, partire dal consolidamento residuo in WORK.md.
+- Storico persistente e analisi finale agent unica restano vincoli approvati; domande successive in chat.
 
 ## Vincoli inderogabili
 

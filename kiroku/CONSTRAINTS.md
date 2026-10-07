@@ -32,6 +32,12 @@ Stato: active
 Regola: Loopback, token effimero nel main Electron, IPC limitato, renderer senza Node e processi posseduti chiusi all'uscita.
 Perché: Il frontend non deve ottenere credenziali o l'accesso generale al computer.
 
+### Vincolo: Revisione finale unica e linea preservata
+
+Stato: active
+Regola: Conservare report e tentativo agent per partita; riapertura e domande non rigenerano la revisione. La linea originale conclusa resta immutabile; alternative in varianti separate.
+Perché: Richiesta esplicita dell'utente del 2026-10-07; evitare costo ripetuto e perdita della partita.
+
 ## Fuori ambito
 
 - Account utenti, matchmaking, cloud sync, pagamenti e motore remoto.

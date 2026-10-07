@@ -1,3 +1,4 @@
+-c constraints-maia.txt
 torch==2.8.0
 numpy==2.2.6
 huggingface-hub==0.34.4

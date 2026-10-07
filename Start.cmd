@@ -1,6 +1,10 @@
 @echo off
 setlocal
 cd /d "%~dp0"
+if exist "release\0.6.0\win-unpacked\Yomi Sensei.exe" (
+  start "" "release\0.6.0\win-unpacked\Yomi Sensei.exe"
+  exit /b 0
+)
 if exist "release\0.5.3\win-unpacked\Yomi Sensei.exe" (
   start "" "release\0.5.3\win-unpacked\Yomi Sensei.exe"
   exit /b 0

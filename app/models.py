@@ -46,6 +46,7 @@ class MoveRequest(GameContext):
 
 
 class AnalyzeRequest(GameContext, MaiaProfile):
+    study: bool = False
     depth: int | None = Field(default=None, ge=8, le=24)
     include_replies: bool = True
     include_human: bool = True

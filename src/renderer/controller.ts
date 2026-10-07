@@ -467,6 +467,7 @@ export class GameController {
     this.serial = Math.max(
       this.serial,
       ...saved.records.map((move) => move.id),
+      ...saved.variations.flatMap((branch) => branch.records.map((move) => move.id)),
       ...saved.snapshot.chat.map((item) => item.id),
     );
     this.update({
@@ -658,6 +659,7 @@ export class GameController {
         ...context,
         ...profile,
         depth: 8,
+        study: this.value.historyPly !== null,
         include_human: false,
         include_replies: false,
       });
@@ -672,6 +674,7 @@ export class GameController {
         ...context,
         ...profile,
         include_human: true,
+        study: this.value.historyPly !== null,
         include_replies: this.value.mode === 'free',
       });
       if (!valid()) return;

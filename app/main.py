@@ -169,11 +169,13 @@ async def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
     except ChessRuleError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
+    scope = {"claim_draw": False} if request.study else {}
     jobs = [stockfish.analyze(
         request.fen, request.depth, request.include_replies, request.initial_fen, request.moves_uci,
+        **scope,
     )]
-    if request.include_human and not board.is_game_over(claim_draw=True):
-        jobs.append(maia.analyze(board, request, request.include_replies))
+    if request.include_human and not board.is_game_over(claim_draw=not request.study):
+        jobs.append(maia.analyze(board, request, request.include_replies, **scope))
     results = await asyncio.gather(*jobs, return_exceptions=True)
     result = results[0]
     if isinstance(result, BaseException):

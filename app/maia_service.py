@@ -101,7 +101,7 @@ class MaiaService:
             loss_percent=item["wdl"][2] / 10,
         ) for rank, item in enumerate(response["candidates"], start=1)]
 
-    async def analyze(self, board: chess.Board, profile: MaiaProfile, include_replies: bool) -> HumanAnalysis:
+    async def analyze(self, board: chess.Board, profile: MaiaProfile, include_replies: bool, claim_draw: bool = True) -> HumanAnalysis:
         response = await self.predict(board, profile)
         candidates = self.candidates(board, response)
         replies = []
@@ -110,7 +110,7 @@ class MaiaService:
                 reply_board = board.copy()
                 reply_board.push_uci(candidate.uci)
                 reply_candidates = []
-                if not reply_board.is_game_over(claim_draw=True):
+                if not reply_board.is_game_over(claim_draw=claim_draw):
                     reply_candidates = self.candidates(reply_board, await self.predict(reply_board, profile))
                 replies.append(HumanReply(
                     after_uci=candidate.uci, after_san=candidate.san,

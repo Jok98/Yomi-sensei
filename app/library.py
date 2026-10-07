@@ -20,9 +20,9 @@ def now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def replay(snapshot: GameSnapshot) -> tuple[chess.Board, list[dict], list[dict]]:
+def replay(snapshot: GameSnapshot, claim_draw: bool = True) -> tuple[chess.Board, list[dict], list[dict]]:
     board = parse_board(snapshot.initial_fen)
-    frames = [position_state(board).model_dump()]
+    frames = [position_state(board, claim_draw=claim_draw and not snapshot.moves).model_dump()]
     moves = []
     for index, saved in enumerate(snapshot.moves):
         if board.is_game_over(claim_draw=False):
@@ -37,7 +37,7 @@ def replay(snapshot: GameSnapshot) -> tuple[chess.Board, list[dict], list[dict]]
         color = "white" if board.turn else "black"
         before = frames[-1]
         board.push(move)
-        after = position_state(board, san, saved.uci).model_dump()
+        after = position_state(board, san, saved.uci, claim_draw=claim_draw and index == len(snapshot.moves) - 1).model_dump()
         frames.append(after)
         moves.append({
             "id": index + 1, "before": before, "after": after, "uci": saved.uci,
@@ -148,8 +148,9 @@ class Library:
 
     def list(self, query: str = "") -> list[dict]:
         with self.connection() as db:
-            rows = db.execute("SELECT * FROM games ORDER BY updated_at DESC LIMIT 500").fetchall()
-            return [self._summary(row) for row in rows if query.casefold() in row["title"].casefold()]
+            db.create_function("casefold", 1, lambda text: text.casefold())
+            rows = db.execute("SELECT * FROM games WHERE instr(casefold(title), ?) > 0 ORDER BY updated_at DESC LIMIT 500", (query.casefold(),)).fetchall()
+            return [self._summary(row) for row in rows]
 
     def open(self, game_id: str) -> dict:
         with self.connection() as db:
@@ -163,10 +164,12 @@ class Library:
                 if not board.is_game_over(claim_draw=True):
                     final["status"] = {"resignation": "Partita conclusa per abbandono", "draw": "Patta concordata", "timeout": "Partita conclusa per tempo", "import": "Partita importata conclusa"}.get(row["finish_reason"], "Partita conclusa") + f" · {row['result']}"
             variations = []
-            for item in snapshot.variations:
+            for branch_index, item in enumerate(snapshot.variations):
                 root = frames[item.root_ply]["fen"]
                 branch = GameSnapshot(initial_fen=root, moves=[SavedMove(uci=uci) for uci in item.moves_uci])
-                _, branch_frames, branch_moves = replay(branch)
+                _, branch_frames, branch_moves = replay(branch, claim_draw=False)
+                for index, record in enumerate(branch_moves):
+                    record["id"] = len(moves) + branch_index * 201 + index + 1
                 variations.append({**item.model_dump(), "frames": branch_frames, "records": branch_moves})
             review = self._review(db, game_id)
             if review and review["state"] == "complete" and review["report"]:

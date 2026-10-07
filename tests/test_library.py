@@ -1,5 +1,5 @@
 import asyncio
-from pathlib import Path
+import uuid
 
 import chess
 import chess.pgn
@@ -82,6 +82,38 @@ def test_pgn_side_line_annotations_roundtrip(tmp_path):
     exported = library.export(imported['id'])
     assert 'Centro' in exported
     assert '[%cal Rd4d5]' in exported
+
+
+def test_old_games_remain_searchable_beyond_the_latest_500(tmp_path):
+    library = Library(tmp_path)
+    game = save(library)
+    with library.connection() as db:
+        db.execute("UPDATE games SET title='Partita dimenticata', updated_at='2020-01-01' WHERE id=?", (game['id'],))
+        db.executemany("INSERT INTO games SELECT ?, revision,created_at,'2026-01-01','Recente',result,finish_reason,snapshot FROM games WHERE id=?", [(str(uuid.uuid4()), game['id']) for _ in range(501)])
+    assert len(library.list()) == 500
+    assert library.list('DIMENTICATA')[0]['id'] == game['id']
+
+
+def test_nonfinal_claimable_draw_does_not_end_imported_history_or_study_variant(tmp_path):
+    library = Library(tmp_path)
+    moves = ['g1f3','g8f6','f3g1','f6g8','g1f3','g8f6','f3g1','f6g8','e2e4','e7e5']
+    game = save(library, moves)
+    data = library.open(game['id'])
+    assert not data['frames'][7]['is_game_over']
+    assert not data['frames'][-1]['is_game_over']
+    snapshot = GameSnapshot.model_validate(data['snapshot'])
+    snapshot.variations = [Variation(id='knight-line', root_ply=0, moves_uci=moves[:8])]
+    library.save(SaveGameRequest(game_id=game['id'], revision=2, snapshot=snapshot))
+    assert not library.open(game['id'])['variations'][0]['frames'][-1]['is_game_over']
+
+
+def test_hydrated_variation_move_ids_are_unique_from_original_prefix(tmp_path):
+    library = Library(tmp_path)
+    game = library.import_games('1. e4 e5 (1... c5 2. Nf3) 2. Bc4 *', None)[0]
+    data = library.open(game['id'])
+    branch = data['variations'][0]
+    line = [*data['records'][:branch['root_ply']], *branch['records']]
+    assert len({move['id'] for move in line}) == len(line)
 
 
 def test_timeout_draw_when_opponent_has_only_king(tmp_path):

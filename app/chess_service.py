@@ -336,7 +336,7 @@ class StockfishService:
                     reply_board = board.copy()
                     reply_board.push_uci(candidate.uci)
                     reply_candidates: list[CandidateMove] = []
-                    if not reply_board.is_game_over(claim_draw=True):
+                    if not reply_board.is_game_over(claim_draw=claim_draw):
                         reply_infos = await asyncio.to_thread(
                             self._analyze_sync,
                             reply_board,

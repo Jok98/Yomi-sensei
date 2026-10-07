@@ -91,7 +91,7 @@ class Reviews:
                     ply = moment["ply"]
                     board = parse_board(game["frames"][ply]["fen"], snapshot["initial_fen"], moves[:ply])
                     try:
-                        human = await self.maia.analyze(board, profile, False)
+                        human = await self.maia.analyze(board, profile, False, claim_draw=False)
                         points[ply]["analysis"]["human"] = human.model_dump()
                         candidate = next((c for c in human.candidates if c.uci == moves[ply]), None)
                         if candidate:

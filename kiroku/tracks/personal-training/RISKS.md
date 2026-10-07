@@ -3,7 +3,7 @@
 ## Rischi aperti
 
 - Coach con account reale e qualità delle spiegazioni restano da verificare manualmente.
-- Collaudo pacchetto e CI remota in corso prima della consegna.
+- Nessun blocco di consegna; pacchetto e CI verificati.
 
 ## Rischi accettati
 
@@ -19,3 +19,4 @@
 - Studio confuso con gioco: cursore/varianti separati e linea conclusa immutabile.
 - Risposta dopo timeout: generazione invalida il risultato tardivo; test passato.
 - Aiuti automatici negli esercizi: barra/candidate/giudizi nascosti e suggerimenti espliciti.
+- Chiusura durante il calcolo: snapshot dei soli turni committati; risposte tardive scartate. Doppia chiusura/fallimento/retry verificati nel desktop sorgenti e pacchetto.

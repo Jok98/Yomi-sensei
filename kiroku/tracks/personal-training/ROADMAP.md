@@ -59,7 +59,7 @@ Risks: Clock e risposta concorrenti; confondere rotazione e colore giocato.
 
 ### M-06: Reattività, consolidamento e consegna
 
-Status: in_progress
+Status: completed
 Objective: Rendere rapidi i turni e consegnare tutti i flussi approvati verificati.
 Scope: Giudizio in background, analisi progressiva/cache, CI e lock Python (YS-05), build Windows e push.
 Expected artifacts: CI, lock, test/smoke e pacchetto aggiornato.

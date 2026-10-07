@@ -29,6 +29,9 @@ Mitigazione: Claim SQLite prima della chiamata e nessun retry dopo un tentativo;
 
 ## Rischi chiusi
 
+- Riproducibilità Windows (YS-05): constraints backend/Maia, lock pnpm, ambiente pulito e CI remota passati.
+- Persistenza/chiusura: snapshot serializzati e revisionati, freeze UI, scarto risposte tardive e doppia chiusura/fallimento/retry verificati.
+
 - Ripetizioni: storico UCI validato e Board con stack; regressioni e smoke desktop passano (YS-01).
 - Dipendenza da Docker: percorso rimosso su richiesta dell'utente.
 - Annullamento, analisi obsolete in chat e pannello risposte nascosto: corretti nel controller/componenti React con test regressione.

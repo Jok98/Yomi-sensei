@@ -2,23 +2,35 @@
 
 ## In corso
 
-- Archivio/studio/revisione unica/allenamento in corso nel [track personal-training](tracks/personal-training/START_HERE.md), inclusi UI, catture e YS-05.
+- Nessuno; track personal-training concluso nella versione 0.6.0.
 
 ## TODO
 
-### Attività: Consolidamento e manutenzione — YS-05
-
-Stato: todo
-Completamento:
-CI e dipendenze Python bloccate completano la riproducibilità delle build.
-Già completati: test frontend, lockfile pnpm, README desktop e smoke automatico.
-`tools/` (circa 2 GB di Magpie non tracciato) è preservato ed escluso dal pacchetto.
+- Nessuno nell'ambito approvato.
 
 ## Bloccato
 
 - Nessuna attività bloccata.
 
 ## Fatto
+
+### Attività: Archivio, revisione unica e allenamento personale
+
+Stato: done
+Completamento:
+Tutti i sei punti e le aggiunte completati nel track personal-training: SQLite/PGN/FEN, studio/varianti,
+report salvato e chiamata coach unica, chat, esercizi/progressi, colori/clock/aiuti, controlli a destra,
+catture e popup matto. Passano 59 test Python e 35 TypeScript; smoke sorgenti/pacchetto e Kiroku strict.
+Nove sequenze per smoke mostrano variazione 0 px di tavoliere/barra; chiusura/fallimento/retry verificati.
+Start.cmd avvia la versione Windows 0.6.0, senza Docker; nessuna chiamata account nei test.
+
+### Attività: Consolidamento e manutenzione — YS-05
+
+Stato: done
+Completamento:
+CI Windows installa dipendenze vincolate, verifica formattazione/tipi/test frontend/backend e build.
+Constraints Python backend/Maia e lock pnpm; ambiente Python pulito e CI remota passati.
+Fine riga controllati da .gitattributes; tools/ preservato ed escluso da commit/pacchetto.
 
 ### Attività: Barra del vantaggio Stockfish
 

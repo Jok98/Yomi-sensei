@@ -206,6 +206,7 @@ pnpm check
 pnpm format:check
 pnpm smoke:desktop
 pnpm smoke:library
+node scripts/smoke-close.mjs
 ```
 
 `pnpm smoke:board` esegue le verifiche di scacchiera/workspace con Maia 79M e Stockfish reali,

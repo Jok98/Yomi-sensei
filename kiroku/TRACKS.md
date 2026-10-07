@@ -2,21 +2,23 @@
 
 ## Active
 
-### personal-training
-
-Status: active
-Purpose: Archivio, studio, revisione agent unica e allenamento personale.
-Repos: Yomi-sensei
-Areas: persistenza, backend, controller, UX e distribuzione.
-Keywords: partite, storico, PGN, report, esercizi, clock, catture
-Read: tracks/personal-training/START_HERE.md
-Related: board-workspace per geometria stabile e stile classico.
+- Nessuno.
 
 ## Paused
 
 - Nessuno.
 
 ## Closed
+
+### personal-training
+
+Status: closed
+Purpose: Archivio, studio, revisione agent unica e allenamento personale.
+Repos: Yomi-sensei
+Areas: persistenza, backend, controller, UX e distribuzione.
+Keywords: partite, storico, PGN, report, esercizi, clock, catture
+Read: tracks/personal-training/START_HERE.md
+Related: board-workspace per geometria stabile e stile classico.
 
 ### board-workspace
 

@@ -371,8 +371,20 @@ export class GameController {
     } else await this.saveChain;
   }
   async prepareClose() {
+    ++this.generation;
+    ++this.analysisId;
+    this.update({
+      busy: 'Salvataggio partita',
+      chatBusy: false,
+      analysisPending: false,
+      humanPending: false,
+    });
     this.pauseClock();
-    await this.flushSave();
+    try {
+      await this.flushSave();
+    } finally {
+      this.update({ busy: null });
+    }
   }
   dispose() {
     clearTimeout(this.saveTimer);

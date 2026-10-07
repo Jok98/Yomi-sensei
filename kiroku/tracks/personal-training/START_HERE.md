@@ -12,11 +12,11 @@
 - Richiede indietro e rotazione/cambio colore a destra, opposti alla barra.
 - Richiede pezzi catturati per lato, coerenti anche tornando nello storico.
 - Richiede popup di scacco matto con vincitore e accesso alla revisione/nuova partita.
-- M-01/M-05 verificate; M-06 in corso. Versione 0.6.0 con archivio, studio, revisione ed esercizi.
+- M-01/M-06 completate. Versione Windows 0.6.0 con tutti i sei punti e le aggiunte verificate.
 
 ## Prossima azione
 
-- Completare smoke del pacchetto 0.6.0, push e verifica CI; seguire ROADMAP.md.
+- Aprire Start.cmd. La revisione coach reale resta da provare manualmente con il proprio account.
 
 ## Vincoli inderogabili
 

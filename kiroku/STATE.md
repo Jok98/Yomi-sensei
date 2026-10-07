@@ -11,12 +11,12 @@
 - Bianco/Nero/casuale, orologi/incremento, conclusione, allenamento senza aiuti e popup matto.
 - Tavoliere classico con catture per colore, controlli a destra opposti alla barra Stockfish.
 - Giudizi in background, analisi progressiva/cache e geometria del tavoliere stabile (YS-06).
-- CI Windows e dipendenze Python dirette/transitive vincolate; YS-05 in verifica finale.
-- Track attivo personal-training: M-01/M-05 verificate, M-06 push/CI in corso; pacchetto Windows verificato.
+- CI Windows e dipendenze Python dirette/transitive vincolate; YS-05 completato.
+- Track personal-training concluso: M-01/M-06 completate, codice pubblicato e pacchetto Windows verificato.
 
 ## Verifiche attuali
 
-- 55 test Python, 34 TypeScript, typecheck/build/formattazione passati.
+- 59 test Python, 35 TypeScript, typecheck/build/formattazione passati.
 - Ambiente Python pulito: installazione vincolata e suite passate; Maia dry-run coerente.
 - Smoke archivio sorgenti con motori reali: PGN, catture, varianti/commenti/frecce al riavvio,
   popup matto, riuso report, chat senza account, esercizi/progressi, Nero, clock e aiuti.
@@ -28,6 +28,6 @@
 
 ## Lavoro aperto
 
-- Completare push e CI remota; pacchetto 0.6.0 verificato.
+- Nessun lavoro residuo nell'ambito approvato. CI Windows remota e pacchetto 0.6.0 verificati.
 - Coach con account reale, CUDA e piattaforme diverse da Windows non validati.
 - Chiamate legacy con sola FEN restano prive dello storico delle ripetizioni (YS-01).

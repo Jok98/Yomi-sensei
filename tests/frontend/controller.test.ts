@@ -542,6 +542,29 @@ test('a failed save keeps changes and blocks switching until the save succeeds',
   assert.equal(game.getSnapshot().savePending, false);
   game.dispose();
 });
+
+test('closing saves the committed line and discards a computer response arriving afterwards', async () => {
+  const api = new FakeApi();
+  const game = new GameController(api);
+  await game.newGame('computer');
+  const pending = deferred<Position>();
+  api.computerWait = pending.promise;
+  const moving = game.move('e2', 'e4');
+  await settle();
+  await game.prepareClose();
+  pending.resolve(blackMove);
+  await moving;
+  assert.deepEqual(
+    game.getSnapshot().moves.map((move) => move.uci),
+    ['e2e4'],
+  );
+  assert.deepEqual(
+    api.saved.get(game.getSnapshot().gameId!)!.snapshot.moves.map((move) => move.uci),
+    ['e2e4'],
+  );
+  assert.equal(game.getSnapshot().busy, null);
+  game.dispose();
+});
 test('complete UCI history accompanies moves, analysis, chat and undo', async () => {
   const api = new FakeApi();
   const game = new GameController(api);

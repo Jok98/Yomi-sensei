@@ -18,6 +18,7 @@ let window: BrowserWindow | null = null;
 let backend: Backend | null = null;
 let ready: Promise<void>;
 let quitting = false;
+let allowWindowClose = false;
 const ownsProfile = app.requestSingleInstanceLock();
 if (!ownsProfile) app.quit();
 app.on('second-instance', () => {
@@ -118,9 +119,9 @@ app.whenReady().then(async () => {
     if (process.env.YOMI_SMOKE !== '1') window?.show();
   });
   window.on('close', (event) => {
-    if (quitting) return;
+    if (allowWindowClose) return;
     event.preventDefault();
-    app.quit();
+    if (!quitting) app.quit();
   });
   if (!app.isPackaged && process.env.YOMI_DEV_URL === 'http://127.0.0.1:5174')
     await window.loadURL(process.env.YOMI_DEV_URL);
@@ -128,21 +129,28 @@ app.whenReady().then(async () => {
 });
 app.on('window-all-closed', () => app.quit());
 app.on('before-quit', (event) => {
-  if (quitting) return;
+  if (allowWindowClose) return;
   event.preventDefault();
+  if (quitting) return;
   quitting = true;
   void (async () => {
     try {
       if (window && !window.webContents.isDestroyed())
-        await window.webContents.executeJavaScript('window.yomiFlush?.()');
+        await window.webContents.executeJavaScript(`(async () => {
+          const shell = document.querySelector('.app-shell');
+          if (shell) shell.inert = true;
+          try { await window.yomiFlush?.(); }
+          catch (error) { if (shell) shell.inert = false; throw error; }
+        })()`);
     } catch (error) {
       // Keep the renderer and its unsaved snapshot alive so the user can retry.
       quitting = false;
       console.error('Salvataggio prima della chiusura fallito:', error);
-      window?.show();
+      if (process.env.YOMI_SMOKE !== '1') window?.show();
       return;
     }
     await backend?.close();
+    allowWindowClose = true;
     app.quit();
   })();
 });

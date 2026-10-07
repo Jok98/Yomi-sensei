@@ -2,14 +2,11 @@
 
 ## In corso
 
-- M-06: collaudo pacchetto 0.6.0, CI remota e push.
+- Nessuno; track concluso.
 
 ## TODO
 
-### Attività: Consegna e CI
-
-Status: todo
-Completion: Smoke pacchetto, Kiroku strict e CI remota passati; commit pubblicato e Start.cmd aggiornato.
+- Nessuno nell'ambito approvato.
 
 ## Bloccato
 
@@ -17,12 +14,15 @@ Completion: Smoke pacchetto, Kiroku strict e CI remota passati; commit pubblicat
 
 ## Fatto
 
-- Tutti i sei punti e le aggiunte registrati e implementati.
-- Autosalvataggio/archivio, import/export PGN/FEN, chat e riavvio verificati.
-- Studio non distruttivo, varianti/note/frecce salvate e catture per colore verificati.
-- Report salvato e chiamata coach unica verificata con agent finto, anche dopo errore/interruzione.
-- Esercizi con aiuti e progressi, colori, clock/incremento, pausa, timeout e popup matto verificati.
-- Giudizio in background, analisi progressiva/cache, CI Windows e vincoli Python implementati.
+- Tutti i sei punti e le aggiunte implementati e registrati.
+- Archivio/autosalvataggio/PGN/FEN, studio, varianti, commenti e frecce persistenti verificati.
+- Report Stockfish/Maia persistito, grafico/momenti e chiamata coach unica con claim SQLite verificati.
+- Chat contestuale, esercizi/tentativi/ripasso e aiuti progressivi verificati.
+- Bianco/Nero/casuale, clock/incremento/pausa, conclusione/timeout e popup matto verificati.
+- Controlli a destra, catture per colore (en passant/promozioni) e scacchiera stabile verificati.
+- Analisi progressiva/cache e giudizio in background verificati; 59 test Python e 35 TypeScript passati.
+- CI Windows e vincoli Python implementati (YS-05), CI remota passata; codice pubblicato.
+- Pacchetto 0.6.0 e Start.cmd pronti; salvataggio/chiusura/fallimento/retry verificati.
 
 ## Annullato
 

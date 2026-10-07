@@ -2,7 +2,7 @@
 
 ## Stato corrente
 
-- M-01/M-05 implementate e verificate nei sorgenti; M-06 in corso per push/CI; pacchetto Windows verificato.
+- M-01/M-06 completate; codice pubblicato e pacchetto Windows 0.6.0 verificato.
 - SQLite nel profilo conserva partite, chat, note, frecce, varianti, report e progressi.
 - Archivio cercabile/filtrabile, PGN/FEN, studio non distruttivo e controlli a destra.
 - Catture per colore dalla linea visualizzata; inclusi en passant e pezzi promossi.
@@ -18,7 +18,7 @@
 
 ## Verificato
 
-- 55 test Python e 34 TypeScript; typecheck/build/formattazione passati.
+- 59 test Python e 35 TypeScript; typecheck/build/formattazione passati.
 - Ambiente Python pulito con dipendenze vincolate: installazione e test passati; Maia dry-run coerente.
 - Smoke sorgenti: riavvio reale con varianti/commenti/frecce, PGN, catture en passant, archivio/filtri,
   matto senza popup al riavvio, report riusato, chat senza account, esercizi/progressi, Nero, clock e aiuti.
@@ -29,5 +29,5 @@
 
 ## Attenzioni
 
-- Pacchetto 0.6.0 verificato; CI remota ancora in corso; nessuna chiamata account nei test.
+- CI Windows remota passata; nessuna chiamata account nei test. Coach reale da verificare manualmente.
 - Una chiamata coach fallita/interrotta resta consumata; il report motore e la chat restano disponibili.
